@@ -69,13 +69,13 @@ Requires **Python 3.12+**.
 Install it as a global command from PyPI with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install templify
+uv tool install templify-cli
 ```
 
 or with [pipx](https://pipx.pypa.io/):
 
 ```bash
-pipx install templify
+pipx install templify-cli
 ```
 
 Or run it from a clone without installing:

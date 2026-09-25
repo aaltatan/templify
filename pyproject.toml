@@ -1,5 +1,5 @@
 [project]
-name = "templify"
+name = "templify-cli"
 version = "0.1.0"
 description = "Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line."
 readme = "README.md"
@@ -58,6 +58,9 @@ templify = "templify.cli.main:main"
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "templify"
 
 [dependency-groups]
 dev = [
