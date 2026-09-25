@@ -1,0 +1,77 @@
+[project]
+name = "templify"
+version = "0.1.0"
+description = "Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line."
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    { name = "aaltatan", email = "a.altatan@gmail.com" }
+]
+requires-python = ">=3.12"
+keywords = [
+    "template",
+    "templating",
+    "jinja2",
+    "docx",
+    "word",
+    "excel",
+    "mail-merge",
+    "document-generation",
+    "cli",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business",
+    "Topic :: Text Processing :: Markup",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+dependencies = [
+    "docxtpl>=0.20.2",
+    "jinja2>=3.1",
+    "openpyxl>=3.1.5",
+    "pyspecification>=3.0.0",
+    "rich>=13.0",
+    "typer>=0.27.2",
+    "typer-di>=0.1.5",
+    "typer-swissknife>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/aaltatan/templify"
+Documentation = "https://github.com/aaltatan/templify#readme"
+Repository = "https://github.com/aaltatan/templify"
+Issues = "https://github.com/aaltatan/templify/issues"
+
+[project.scripts]
+templify = "templify.cli.main:main"
+
+[build-system]
+requires = ["uv_build>=0.12.18,<0.13"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "devtools>=0.12.2",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["templify"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = ["if __name__ == .__main__.:"]
