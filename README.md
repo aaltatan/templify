@@ -879,11 +879,11 @@ A format that needs validation can extend `TextWriter` and override `render`, th
 
 ### A new filter rule
 
-`src/templify/filter_rules.py`: the first two parameters are the row and the column. `processors` converts the values coming from the filter JSON.
+`src/templify/filter_rules.py`: the first two parameters are the row and the column. A `Process` marker on a parameter converts the value coming from the filter JSON.
 
 ```python
-@rules.rule(processors=float)
-def float__between(d: dict[str, Any], key: str, low: float, high: float) -> bool:
+@rules.rule()
+def float__between(d: dict[str, Any], key: str, low: FloatValue, high: FloatValue) -> bool:
     return low <= d[key] <= high
 ```
 
