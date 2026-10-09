@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any
 
 import pytest
-from pyspecification import ArgumentError
+from pyspecification import ProcessArgumentError
 from templify.cli.dependencies.data import _get_compiler
 from templify.filter_rules import _process_decimal, _to_date, rules
 
@@ -105,7 +105,7 @@ def test_missing_key_is_rejected() -> None:
 
 @pytest.mark.parametrize(("rule", "value"), [("date__eq", "yesterday"), ("int__eq", "five")])
 def test_invalid_filter_value(rule: str, value: str) -> None:
-    with pytest.raises(ArgumentError):
+    with pytest.raises(ProcessArgumentError):
         matches(rule, None, value)
 
 

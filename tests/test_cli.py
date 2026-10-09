@@ -337,6 +337,7 @@ def test_filters_schema_lists_rules() -> None:
     assert "key: string, value: list[string]" in lines["string__is_in"]
     assert "key: string, pattern: string" in lines["string__regex"]
     assert "key: string, value: date " in lines["date__ge"]
+    assert "value: string | number" in " ".join(output.split())
     assert "Keep records where `key` is `true`." in lines["is_true"]
 
 
@@ -520,6 +521,7 @@ class TestDateFilter:
         )  # fmt: skip
         assert code == 2
         assert "soon" in output
+        assert "Filter failed on a data value" not in output
 
 
 def test_main_entry_point(monkeypatch: pytest.MonkeyPatch) -> None:

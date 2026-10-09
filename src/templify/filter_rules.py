@@ -2,15 +2,16 @@
 
 The first argument of every rule is the column (`key`), and values coming from the filter
 JSON are converted to the rule type, so `{"name": "int__gt", "args": ["age", "30"]}` works.
+The conversion is declared on the `value` type with a `Process` marker.
 """
 
 import re
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Annotated, Any
 
-from pyspecification import SubscriptableRulesRegistry
+from pyspecification import Process, SubscriptableRulesRegistry
 
 rules = SubscriptableRulesRegistry[dict[str, Any], str, bool](
     operator="logical",
@@ -39,33 +40,35 @@ def is_null(d: dict[str, Any], key: str) -> bool:
 # int
 # -----------------------
 
+type IntValue = Annotated[int, Process(int)]
 
-@rules.rule(processors=int)
-def int__eq(d: dict[str, Any], key: str, value: int) -> bool:
+
+@rules.rule()
+def int__eq(d: dict[str, Any], key: str, value: IntValue) -> bool:
     """Keep records where `key` equals `value`."""
     return d[key] == value
 
 
-@rules.rule(processors=int)
-def int__gt(d: dict[str, Any], key: str, value: int) -> bool:
+@rules.rule()
+def int__gt(d: dict[str, Any], key: str, value: IntValue) -> bool:
     """Keep records where `key` is greater than `value`."""
     return d[key] > value
 
 
-@rules.rule(processors=int)
-def int__ge(d: dict[str, Any], key: str, value: int) -> bool:
+@rules.rule()
+def int__ge(d: dict[str, Any], key: str, value: IntValue) -> bool:
     """Keep records where `key` is greater than or equal to `value`."""
     return d[key] >= value
 
 
-@rules.rule(processors=int)
-def int__lt(d: dict[str, Any], key: str, value: int) -> bool:
+@rules.rule()
+def int__lt(d: dict[str, Any], key: str, value: IntValue) -> bool:
     """Keep records where `key` is less than `value`."""
     return d[key] < value
 
 
-@rules.rule(processors=int)
-def int__le(d: dict[str, Any], key: str, value: int) -> bool:
+@rules.rule()
+def int__le(d: dict[str, Any], key: str, value: IntValue) -> bool:
     """Keep records where `key` is less than or equal to `value`."""
     return d[key] <= value
 
@@ -74,33 +77,35 @@ def int__le(d: dict[str, Any], key: str, value: int) -> bool:
 # float
 # -----------------------
 
+type FloatValue = Annotated[float, Process(float)]
 
-@rules.rule(processors=float)
-def float__eq(d: dict[str, Any], key: str, value: float) -> bool:
+
+@rules.rule()
+def float__eq(d: dict[str, Any], key: str, value: FloatValue) -> bool:
     """Keep records where `key` equals `value`."""
     return d[key] == value
 
 
-@rules.rule(processors=float)
-def float__gt(d: dict[str, Any], key: str, value: float) -> bool:
+@rules.rule()
+def float__gt(d: dict[str, Any], key: str, value: FloatValue) -> bool:
     """Keep records where `key` is greater than `value`."""
     return d[key] > value
 
 
-@rules.rule(processors=float)
-def float__ge(d: dict[str, Any], key: str, value: float) -> bool:
+@rules.rule()
+def float__ge(d: dict[str, Any], key: str, value: FloatValue) -> bool:
     """Keep records where `key` is greater than or equal to `value`."""
     return d[key] >= value
 
 
-@rules.rule(processors=float)
-def float__lt(d: dict[str, Any], key: str, value: float) -> bool:
+@rules.rule()
+def float__lt(d: dict[str, Any], key: str, value: FloatValue) -> bool:
     """Keep records where `key` is less than `value`."""
     return d[key] < value
 
 
-@rules.rule(processors=float)
-def float__le(d: dict[str, Any], key: str, value: float) -> bool:
+@rules.rule()
+def float__le(d: dict[str, Any], key: str, value: FloatValue) -> bool:
     """Keep records where `key` is less than or equal to `value`."""
     return d[key] <= value
 
@@ -216,32 +221,35 @@ def _process_decimal(value: str | float) -> Decimal:
     raise TypeError(msg)
 
 
-@rules.rule(processors=_process_decimal)
-def decimal__eq(d: dict[str, Any], key: str, value: Decimal) -> bool:
+type DecimalValue = Annotated[Decimal, Process(_process_decimal)]
+
+
+@rules.rule()
+def decimal__eq(d: dict[str, Any], key: str, value: DecimalValue) -> bool:
     """Keep records where `key` equals `value`."""
     return d[key] == value
 
 
-@rules.rule(processors=_process_decimal)
-def decimal__gt(d: dict[str, Any], key: str, value: Decimal) -> bool:
+@rules.rule()
+def decimal__gt(d: dict[str, Any], key: str, value: DecimalValue) -> bool:
     """Keep records where `key` is greater than `value`."""
     return d[key] > value
 
 
-@rules.rule(processors=_process_decimal)
-def decimal__ge(d: dict[str, Any], key: str, value: Decimal) -> bool:
+@rules.rule()
+def decimal__ge(d: dict[str, Any], key: str, value: DecimalValue) -> bool:
     """Keep records where `key` is greater than or equal to `value`."""
     return d[key] >= value
 
 
-@rules.rule(processors=_process_decimal)
-def decimal__lt(d: dict[str, Any], key: str, value: Decimal) -> bool:
+@rules.rule()
+def decimal__lt(d: dict[str, Any], key: str, value: DecimalValue) -> bool:
     """Keep records where `key` is less than `value`."""
     return d[key] < value
 
 
-@rules.rule(processors=_process_decimal)
-def decimal__le(d: dict[str, Any], key: str, value: Decimal) -> bool:
+@rules.rule()
+def decimal__le(d: dict[str, Any], key: str, value: DecimalValue) -> bool:
     """Keep records where `key` is less than or equal to `value`."""
     return d[key] <= value
 
@@ -250,33 +258,35 @@ def decimal__le(d: dict[str, Any], key: str, value: Decimal) -> bool:
 # datetime
 # -----------------------
 
+type DatetimeValue = Annotated[datetime, Process(datetime.fromisoformat)]
 
-@rules.rule(processors=datetime.fromisoformat)
-def datetime__eq(d: dict[str, Any], key: str, value: datetime) -> bool:
+
+@rules.rule()
+def datetime__eq(d: dict[str, Any], key: str, value: DatetimeValue) -> bool:
     """Keep records where `key` equals `value`."""
     return d[key] == value
 
 
-@rules.rule(processors=datetime.fromisoformat)
-def datetime__gt(d: dict[str, Any], key: str, value: datetime) -> bool:
+@rules.rule()
+def datetime__gt(d: dict[str, Any], key: str, value: DatetimeValue) -> bool:
     """Keep records where `key` is greater than `value`."""
     return d[key] > value
 
 
-@rules.rule(processors=datetime.fromisoformat)
-def datetime__ge(d: dict[str, Any], key: str, value: datetime) -> bool:
+@rules.rule()
+def datetime__ge(d: dict[str, Any], key: str, value: DatetimeValue) -> bool:
     """Keep records where `key` is greater than or equal to `value`."""
     return d[key] >= value
 
 
-@rules.rule(processors=datetime.fromisoformat)
-def datetime__lt(d: dict[str, Any], key: str, value: datetime) -> bool:
+@rules.rule()
+def datetime__lt(d: dict[str, Any], key: str, value: DatetimeValue) -> bool:
     """Keep records where `key` is less than `value`."""
     return d[key] < value
 
 
-@rules.rule(processors=datetime.fromisoformat)
-def datetime__le(d: dict[str, Any], key: str, value: datetime) -> bool:
+@rules.rule()
+def datetime__le(d: dict[str, Any], key: str, value: DatetimeValue) -> bool:
     """Keep records where `key` is less than or equal to `value`."""
     return d[key] <= value
 
@@ -301,32 +311,36 @@ def _to_date(value: date | str) -> date:
     raise TypeError(msg)
 
 
-@rules.rule(processors=_to_date)
-def date__eq(d: dict[str, Any], key: str, value: date) -> bool:
+type DateValue = Annotated[date, Process(datetime.fromisoformat), Process(datetime.date)]
+"""An ISO date or datetime string from the filter JSON, keeping the day only."""
+
+
+@rules.rule()
+def date__eq(d: dict[str, Any], key: str, value: DateValue) -> bool:
     """Keep records where `key` equals `value`, comparing the day only."""
     return _to_date(d[key]) == value
 
 
-@rules.rule(processors=_to_date)
-def date__gt(d: dict[str, Any], key: str, value: date) -> bool:
+@rules.rule()
+def date__gt(d: dict[str, Any], key: str, value: DateValue) -> bool:
     """Keep records where `key` is greater than `value`, comparing the day only."""
     return _to_date(d[key]) > value
 
 
-@rules.rule(processors=_to_date)
-def date__ge(d: dict[str, Any], key: str, value: date) -> bool:
+@rules.rule()
+def date__ge(d: dict[str, Any], key: str, value: DateValue) -> bool:
     """Keep records where `key` is greater than or equal to `value`, comparing the day only."""
     return _to_date(d[key]) >= value
 
 
-@rules.rule(processors=_to_date)
-def date__lt(d: dict[str, Any], key: str, value: date) -> bool:
+@rules.rule()
+def date__lt(d: dict[str, Any], key: str, value: DateValue) -> bool:
     """Keep records where `key` is less than `value`, comparing the day only."""
     return _to_date(d[key]) < value
 
 
-@rules.rule(processors=_to_date)
-def date__le(d: dict[str, Any], key: str, value: date) -> bool:
+@rules.rule()
+def date__le(d: dict[str, Any], key: str, value: DateValue) -> bool:
     """Keep records where `key` is less than or equal to `value`, comparing the day only."""
     return _to_date(d[key]) <= value
 
@@ -335,32 +349,34 @@ def date__le(d: dict[str, Any], key: str, value: date) -> bool:
 # uuid
 # -----------------------
 
+type UUIDValue = Annotated[uuid.UUID, Process(uuid.UUID)]
 
-@rules.rule(processors=uuid.UUID)
-def uuid__eq(d: dict[str, Any], key: str, value: uuid.UUID) -> bool:
+
+@rules.rule()
+def uuid__eq(d: dict[str, Any], key: str, value: UUIDValue) -> bool:
     """Keep records where `key` equals `value`."""
     return d[key] == value
 
 
-@rules.rule(processors=uuid.UUID)
-def uuid__gt(d: dict[str, Any], key: str, value: uuid.UUID) -> bool:
+@rules.rule()
+def uuid__gt(d: dict[str, Any], key: str, value: UUIDValue) -> bool:
     """Keep records where `key` is greater than `value`."""
     return d[key] > value
 
 
-@rules.rule(processors=uuid.UUID)
-def uuid__ge(d: dict[str, Any], key: str, value: uuid.UUID) -> bool:
+@rules.rule()
+def uuid__ge(d: dict[str, Any], key: str, value: UUIDValue) -> bool:
     """Keep records where `key` is greater than or equal to `value`."""
     return d[key] >= value
 
 
-@rules.rule(processors=uuid.UUID)
-def uuid__lt(d: dict[str, Any], key: str, value: uuid.UUID) -> bool:
+@rules.rule()
+def uuid__lt(d: dict[str, Any], key: str, value: UUIDValue) -> bool:
     """Keep records where `key` is less than `value`."""
     return d[key] < value
 
 
-@rules.rule(processors=uuid.UUID)
-def uuid__le(d: dict[str, Any], key: str, value: uuid.UUID) -> bool:
+@rules.rule()
+def uuid__le(d: dict[str, Any], key: str, value: UUIDValue) -> bool:
     """Keep records where `key` is less than or equal to `value`."""
     return d[key] <= value

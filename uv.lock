@@ -393,6 +393,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyargprocessors"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/10/f89316776d7cfc7ebe8bac03777ab2e144d6bf22bb721f6985dbf66195e9/pyargprocessors-0.1.0.tar.gz", hash = "sha256:3cb592c67cdd07eb9eef287f93404c14b54984cbc8e58b7f0d320706bb0f5ae3", size = 21112, upload-time = "2026-10-09T08:10:30.546Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cb/40/730fc6ddac2a19592dbf4a643280c7d8083a2b8b03078d466f6274dccf4f/pyargprocessors-0.1.0-py3-none-any.whl", hash = "sha256:b91954600ca11938680c0dac8514c413ecb2731fcb68b6d824f6fb95f69277d5", size = 17547, upload-time = "2026-10-09T08:10:28.623Z" },
+]
+
+[[package]]
 name = "pyfiglet"
 version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -412,11 +421,14 @@ wheels = [
 
 [[package]]
 name = "pyspecification"
-version = "3.0.0"
+version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4e/3d/ca66d40074e31ca858fbed7aa9be2d8772454a2a771e7c0d0a143cfc1eb4/pyspecification-3.0.0.tar.gz", hash = "sha256:0853d1e92a7a2a78fa2ca91a6f37c22d4545951c003e2ed0a0657e5e8ad24ae7", size = 27254, upload-time = "2026-09-24T23:50:37.206Z" }
+dependencies = [
+    { name = "pyargprocessors" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b2/1d/572caefe796c150b116b397f087f017e974510aa5a3c8bbe0a93f783c233/pyspecification-4.0.0.tar.gz", hash = "sha256:095d3750dc2ff1eeb14ca1d33ffe409b06202bbe729d42bc65b435bc387a0a1e", size = 28483, upload-time = "2026-10-09T08:16:45.156Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/b3/60cd6c613fd170381c322c84bd90a79df5b438c3eaa898672e2b3cb1d8d2/pyspecification-3.0.0-py3-none-any.whl", hash = "sha256:2cfe8128d78fb357364718b72d71916ae2c894c4684473746a12e248db32cfff", size = 26099, upload-time = "2026-09-24T23:50:34.754Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/73/e3c42d66f49a76b4cde786570ee789d86ecbdd991786057e92374414ac75/pyspecification-4.0.0-py3-none-any.whl", hash = "sha256:0a0269cd1abcc72e2bf9cd24cb54fe5776d45434fc3ebf153aad0a13ef053fb4", size = 25820, upload-time = "2026-10-09T08:16:43.763Z" },
 ]
 
 [[package]]
@@ -520,7 +532,7 @@ requires-dist = [
     { name = "docxtpl", specifier = ">=0.20.2" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "pyspecification", specifier = ">=3.0.0" },
+    { name = "pyspecification", specifier = ">=4.0.0" },
     { name = "rich", specifier = ">=13.0" },
     { name = "typer", specifier = ">=0.27.2" },
     { name = "typer-di", specifier = ">=0.1.5" },

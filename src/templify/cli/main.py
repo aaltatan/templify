@@ -58,6 +58,9 @@ def _type_name(schema: dict[str, Any]) -> str:
     if schema.get("type") == "array":
         return f"list[{_type_name(schema.get('items', {}))}]"
 
+    if "anyOf" in schema:
+        return " | ".join(dict.fromkeys(_type_name(option) for option in schema["anyOf"]))
+
     return schema.get("format") or schema.get("type") or "any"
 
 

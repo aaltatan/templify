@@ -12,6 +12,7 @@ from pyspecification import (
     Predicate,
     PredicateCompiler,
     PredicateDict,
+    ProcessArgumentError,
     RuleDoesNotExistError,
     RuleKeyDoesNotExistError,
 )
@@ -143,7 +144,12 @@ def _filter(
 
     try:
         return filter_data(data, compiler, schema)
-    except (RuleKeyDoesNotExistError, RuleDoesNotExistError, ArgumentError) as e:
+    except (
+        RuleKeyDoesNotExistError,
+        RuleDoesNotExistError,
+        ArgumentError,
+        ProcessArgumentError,
+    ) as e:
         raise typer.BadParameter(str(e)) from e
     except (TypeError, ValueError, AttributeError) as e:
         msg = f"Filter failed on a data value (empty cell or wrong type?): {e}"
