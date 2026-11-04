@@ -1,13 +1,11 @@
 [project]
 name = "templify-cli"
-version = "0.1.0"
+version = "0.2.0"
 description = "Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line."
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
-authors = [
-    { name = "aaltatan", email = "a.altatan@gmail.com" }
-]
+authors = [{ name = "aaltatan", email = "a.altatan@gmail.com" }]
 requires-python = ">=3.12"
 keywords = [
     "template",
@@ -41,6 +39,7 @@ dependencies = [
     "openpyxl>=3.1.5",
     "pyspecification>=4.0.0",
     "rich>=13.0",
+    "schemify-cli",
     "typer>=0.27.2",
     "typer-di>=0.1.5",
     "typer-swissknife>=0.1.0",
@@ -63,11 +62,7 @@ build-backend = "uv_build"
 module-name = "templify"
 
 [dependency-groups]
-dev = [
-    "devtools>=0.12.2",
-    "pytest>=9.1.1",
-    "pytest-cov>=7.0",
-]
+dev = ["devtools>=0.12.2", "pytest>=9.1.1", "pytest-cov>=7.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

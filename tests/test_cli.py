@@ -2,11 +2,14 @@
 import json
 import re
 import sys
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 import pytest
+import questionary
 from templify.cli.main import app, main
 from templify.filter_rules import rules
 from typer.testing import CliRunner
@@ -314,6 +317,76 @@ class TestErrors:
         existing_file = make_text_file("out", "")
         code, _ = invoke("m", "-t", template, "-d", xlsx_file, "-o", existing_file)
         assert code == 2
+
+
+# -----------------------
+# schema templates
+# -----------------------
+
+
+@pytest.fixture
+def answer(monkeypatch: pytest.MonkeyPatch) -> Callable[..., None]:
+    """Script the schemify questions: each `text` / `confirm` prompt pops the next answer."""
+
+    def feed(*answers: Any) -> None:
+        queue = list(answers)
+
+        class Question:
+            def unsafe_ask(self) -> Any:
+                return queue.pop(0)
+
+        for name in ("text", "confirm"):
+            monkeypatch.setattr(questionary, name, lambda *_, **__: Question())
+
+        monkeypatch.setattr(questionary, "print", lambda *_, **__: None)
+
+    return feed
+
+
+@pytest.fixture
+def person_schema(make_text_file: MakeFile) -> Path:
+    schema = {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
+    }
+
+    return make_text_file("person.schema.json", json.dumps(schema))
+
+
+class TestSchemaTemplates:
+    def test_single(
+        self, answer: Callable[..., None], person_schema: Path, make_text_file: MakeFile,
+        output_dir: Path,
+    ) -> None:  # fmt: skip
+        answer("Rama")
+        template = make_text_file("t.txt", "Hello {{ data.name }}")
+        code, output = invoke("js", "--js", person_schema, "-t", template, "-o", output_dir)
+
+        assert code == 0, output
+        assert (output_dir / "t.txt").read_text() == "Hello Rama"
+
+    def test_list(
+        self, answer: Callable[..., None], person_schema: Path, make_text_file: MakeFile,
+        output_dir: Path,
+    ) -> None:  # fmt: skip
+        answer("Rama", True, "Rawaa", False)  # name, add another?, name, add another?
+        template = make_text_file("t.txt", "{% for p in people %}{{ p.name }};{% endfor %}")
+        code, output = invoke(
+            "jsl", "--js", person_schema, "-t", template, "-o", output_dir, "-v", "people",
+            "-f", "out",
+        )  # fmt: skip
+
+        assert code == 0, output
+        assert (output_dir / "out.txt").read_text() == "Rama;Rawaa;"
+
+    def test_invalid_schema(self, make_text_file: MakeFile, output_dir: Path) -> None:
+        schema = make_text_file("bad.json", "{not json")
+        template = make_text_file("t.txt", "x")
+        code, output = invoke("js", "--js", schema, "-t", template, "-o", output_dir)
+
+        assert code == 2
+        assert "Could not read schema file" in output
 
 
 # -----------------------
