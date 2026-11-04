@@ -27,6 +27,7 @@ offers/
 - [Commands](#commands)
   - [`multiple-templates` (`m`)](#multiple-templates-m)
   - [`single-template` (`s`)](#single-template-s)
+  - [`schema-template` (`js`) and `schema-list-template` (`jsl`)](#schema-template-js-and-schema-list-template-jsl)
   - [`filters-json-schema` (`fjs`)](#filters-json-schema-fjs)
 - [Data sources](#data-sources)
 - [Templates](#templates)
@@ -149,6 +150,8 @@ templify --help
 | --------------------- | --------------------- | -------------------------------------------- |
 | `multiple-templates`  | `multiple`, `m`       | Render **one file per row** (or per group)   |
 | `single-template`     | `single`, `s`         | Render **one file** with all the rows        |
+| `schema-template`     | `schema`, `js`        | Ask for one object from a JSON Schema, render **one file** |
+| `schema-list-template`| `schema-list`, `jsl`  | Ask for a list from a JSON Schema, render **one file** |
 | `filters-json-schema` | `filters-schema`, `fjs` | List the filter rules and their arguments  |
 
 ### `multiple-templates` (`m`)
@@ -244,6 +247,33 @@ templify s -t team.md -d employees.xlsx -o reports -f "2024 team" -v employees
 ```
 
 The template then loops with `{% for e in employees %}`, and the file is saved as `reports/2024 team.md`.
+
+### `schema-template` (`js`) and `schema-list-template` (`jsl`)
+
+No data file: [schemify](https://github.com/aaltatan/schemify-cli) asks for the data matching a
+JSON Schema file, then it is rendered into **one file**. `schema-template` asks for one object,
+`schema-list-template` for a list of them.
+
+| Option            | Short | Description                                         | Default             |
+| ----------------- | ----- | --------------------------------------------------- | ------------------- |
+| `--json-schema`   | `--js`| JSON Schema file. **Required.**                     |                     |
+| `--template`      | `-t`  | Template file. **Required.**                        |                     |
+| `--output`        | `-o`  | Output directory, created if missing. **Required.** |                     |
+| `--filename`      | `-f`  | Output filename **without** extension               | the template's name |
+| `--data-variable` | `-v`  | Name of the variable holding the data               | `data`              |
+
+```bash
+templify js  --js person.schema.json -t letter.docx -o out   # Hello {{ data.name }}
+templify jsl --js person.schema.json -t team.md -o out       # {% for p in data %}...{% endfor %}
+```
+
+`schema-template` fills one object:
+
+![templify schema-template](https://raw.githubusercontent.com/aaltatan/templify/main/docs/demo/schema.gif)
+
+`schema-list-template` keeps asking for items until you answer **No**:
+
+![templify schema-list-template](https://raw.githubusercontent.com/aaltatan/templify/main/docs/demo/schema-list.gif)
 
 ### `filters-json-schema` (`fjs`)
 
@@ -911,6 +941,13 @@ uvx ruff check src tests
 
 ```bash
 uvx ruff format src tests
+```
+
+The demo GIFs are recorded with [VHS](https://github.com/charmbracelet/vhs) (`scoop install vhs`
+or `brew install vhs`) and PowerShell (`pwsh`), from the repository root:
+
+```bash
+vhs docs/demo/schema.tape && vhs docs/demo/schema-list.tape
 ```
 
 ### Project structure
