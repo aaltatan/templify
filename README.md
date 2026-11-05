@@ -242,6 +242,8 @@ offers/
 └── 4 - Omar.docx
 ```
 
+![templify render --each](https://raw.githubusercontent.com/aaltatan/templify/main/docs/demo/each.gif)
+
 #### One object (`--object`)
 
 ```bash
@@ -958,7 +960,7 @@ The demo GIFs are recorded with [VHS](https://github.com/charmbracelet/vhs) (`sc
 or `brew install vhs`) and PowerShell (`pwsh`), from the repository root:
 
 ```bash
-vhs docs/demo/schema.tape && vhs docs/demo/schema-list.tape
+vhs docs/demo/each.tape && vhs docs/demo/schema.tape && vhs docs/demo/schema-list.tape
 ```
 
 ### Project structure
