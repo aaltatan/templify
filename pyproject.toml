@@ -1,6 +1,6 @@
 [project]
 name = "templify-cli"
-version = "0.2.0"
+version = "0.3.0"
 description = "Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line."
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -39,7 +39,7 @@ dependencies = [
     "openpyxl>=3.1.5",
     "pyspecification>=4.0.0",
     "rich>=13.0",
-    "schemify-cli",
+    "schemify-cli>=0.1.0",
     "typer>=0.27.2",
     "typer-di>=0.1.5",
     "typer-swissknife>=0.1.0",
@@ -52,7 +52,7 @@ Repository = "https://github.com/aaltatan/templify"
 Issues = "https://github.com/aaltatan/templify/issues"
 
 [project.scripts]
-templify = "templify.cli.main:main"
+templify = "templify.cli.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13"]
@@ -62,7 +62,7 @@ build-backend = "uv_build"
 module-name = "templify"
 
 [dependency-groups]
-dev = ["devtools>=0.12.2", "pytest>=9.1.1", "pytest-cov>=7.0"]
+dev = ["devtools>=0.12.2", "mypy>=1.13", "pytest>=9.1.1", "pytest-cov>=7.0", "ruff>=0.8", "types-openpyxl"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -73,3 +73,43 @@ branch = true
 
 [tool.coverage.report]
 exclude_also = ["if __name__ == .__main__.:"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "F", "E", "W", "C90", "I", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B",
+    "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "FA", "ISC", "ICN", "LOG", "G", "INP", "PIE",
+    "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TC", "INT", "ARG",
+    "PTH", "TD", "FIX", "PGH", "PL", "TRY", "FLY", "PERF", "FURB", "RUF",
+]
+ignore = [
+    "ANN201",  # missing return type for public function
+    "ANN401",  # typing.Any
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",  # missing docstrings
+    "D203", "D211", "D212", "D213",  # conflicting docstring layouts
+    "COM812",  # conflicts with the formatter
+    "PT",  # flake8-pytest-style
+    "UP045",  # Optional[X] vs X | None
+    "INP001",  # implicit namespace package
+    "S101",  # assert
+    "PLR2004",  # magic values in comparisons
+]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
+[tool.mypy]
+strict = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["docxtpl.*", "pyspecification.*", "typer_swissknife.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# filter rules compare untyped column values; the decorators come from untyped libraries
+module = ["templify.filter_rules", "templify.cli.cli"]
+disable_error_code = ["no-any-return", "untyped-decorator"]

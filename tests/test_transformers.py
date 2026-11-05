@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+
 from templify.cli.dependencies.data import _get_compiler
 from templify.models import Data
 from templify.transformers import OrderByKey, filter_data, group_by_data, order_by_data

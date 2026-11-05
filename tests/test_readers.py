@@ -3,6 +3,7 @@ from pathlib import Path
 
 import openpyxl
 import pytest
+
 from templify.models import Data
 from templify.readers import ExtensionNotSupportedError, ReaderRegistry, readers
 

@@ -3,7 +3,7 @@ Set Height 820
 Source docs/demo/common.tape
 
 Type "Get-Content team.md" Enter Sleep 1500ms
-Type "templify jsl --js person.schema.json -t team.md -o out"
+Type "templify render -s person.schema.json -t team.md -o out"
 Sleep 300ms
 Enter
 Sleep 3s

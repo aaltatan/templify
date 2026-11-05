@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from pyspecification import ProcessArgumentError
+
 from templify.cli.dependencies.data import _get_compiler
 from templify.filter_rules import _process_decimal, _to_date, rules
 

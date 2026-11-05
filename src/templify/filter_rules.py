@@ -215,7 +215,7 @@ def _process_decimal(value: str | float) -> Decimal:
         return Decimal(value)
 
     if isinstance(value, float):
-        return Decimal.from_float(value).quantize(Decimal("0.01"))
+        return Decimal(value).quantize(Decimal("0.01"))
 
     msg = f"Unexpected type {type(value)}"
     raise TypeError(msg)
