@@ -27,7 +27,7 @@ app = TyperDI(
 
 
 @command(app, name="render", aliases=("r",), no_args_is_help=True, help=RENDER_HELP_TEXT)
-def render(  # noqa: PLR0913, PLR0917
+def render(  # noqa: PLR0913
     console: ConsoleDI,
     mode: ModeDI,
     data: DataDI,
@@ -100,6 +100,7 @@ def render(  # noqa: PLR0913, PLR0917
             filename=filename or template.path.stem,
             extension=template.extension,
         )
+
     except (TemplateError, InvalidOutputError) as e:
         _fail(f"Template Error: {e}")
 
