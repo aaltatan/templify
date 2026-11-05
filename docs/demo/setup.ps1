@@ -33,3 +33,13 @@ function global:prompt { "> " }
 - {{ p.full_name }} ({{ p.age }})
 {% endfor %}
 '@ | Set-Content team.md
+
+@'
+[
+  { "name": "Rama", "department": "IT" },
+  { "name": "Rawaa", "department": "IT" },
+  { "name": "Omar", "department": "Sales" }
+]
+'@ | Set-Content employees.json
+
+"Hi {{ name }}, welcome to {{ department }}!" | Set-Content welcome.md
