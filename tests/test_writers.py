@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from jinja2 import TemplateSyntaxError, UndefinedError
+
 from templify.models import Data
 from templify.writers import (
     Context,
@@ -209,36 +210,64 @@ class TestWriteSingle:
     ) -> None:
         template = make_text_file("t.txt", "{% for p in data %}{{ p.name }};{% endfor %}")
         path = write_single(
-            TextWriter(template), people, output_dir=output_dir, filename="report", extension="txt"
+            TextWriter(template),
+            people,
+            var_name="data",
+            output_dir=output_dir,
+            filename="report",
+            extension="txt",
         )
         assert path == output_dir / "report.txt"
         assert path.read_text() == "Abdullah;Rawaa;Rama;"
 
-    def test_custom_data_variable(
+    def test_custom_var_name(
         self, make_text_file: MakeFile, output_dir: Path, people: Data
     ) -> None:
         template = make_text_file("t.txt", "{{ rows | length }}")
         path = write_single(
             TextWriter(template),
             people,
+            var_name="rows",
             output_dir=output_dir,
             filename="r",
             extension="txt",
-            data_variable="rows",
         )
         assert path.read_text() == "3"
 
     def test_additional_context(self, make_text_file: MakeFile, output_dir: Path) -> None:
         template = make_text_file("t.txt", "a{{ new_line }}b{{ tab }}c{{ page_break }}")
         path = write_single(
-            TextWriter(template), [], output_dir=output_dir, filename="r", extension="txt"
+            TextWriter(template),
+            [],
+            var_name="data",
+            output_dir=output_dir,
+            filename="r",
+            extension="txt",
         )
         assert path.read_text() == "a\nb\tc\f"
+
+    def test_single_object(self, make_text_file: MakeFile, output_dir: Path) -> None:
+        template = make_text_file("t.txt", "Hello {{ object.name }}")
+        path = write_single(
+            TextWriter(template),
+            {"name": "Rama"},
+            var_name="object",
+            output_dir=output_dir,
+            filename="r",
+            extension="txt",
+        )
+
+        assert path.read_text() == "Hello Rama"
 
     def test_empty_data(self, make_text_file: MakeFile, output_dir: Path) -> None:
         template = make_text_file("t.txt", "{% for p in data %}x{% else %}empty{% endfor %}")
         path = write_single(
-            TextWriter(template), [], output_dir=output_dir, filename="r", extension="txt"
+            TextWriter(template),
+            [],
+            var_name="data",
+            output_dir=output_dir,
+            filename="r",
+            extension="txt",
         )
         assert path.read_text() == "empty"
 
@@ -247,6 +276,7 @@ class TestWriteSingle:
         path = write_single(
             TextWriter(make_text_file("t.txt", "x")),
             [],
+            var_name="data",
             output_dir=nested,
             filename="r",
             extension="txt",
@@ -261,6 +291,7 @@ class TestWriteSingle:
         path = write_single(
             TextWriter(make_text_file("t.txt", "new")),
             [],
+            var_name="data",
             output_dir=output_dir,
             filename="r",
             extension="txt",

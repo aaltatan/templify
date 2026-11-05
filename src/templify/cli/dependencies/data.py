@@ -1,8 +1,9 @@
-"""The data pipeline options: `--data`, `--order`, `--filter` and `--group-by`."""
+"""The data options: the mode, `--data` / `--schema`, `--order`, `--filter` and `--group-by`."""
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from zipfile import BadZipFile
 
 import typer
@@ -16,91 +17,199 @@ from pyspecification import (
     RuleDoesNotExistError,
     RuleKeyDoesNotExistError,
 )
+from schemify.fillers import InvalidDataError, ask_data, ask_list
+from schemify.models import Schema
+from schemify.registry import NotSupportedError
+from schemify.validators import check_schema
 from typer_di import Depends
 
 from templify.filter_rules import rules
-from templify.models import Data
-from templify.readers import readers
+from templify.models import Data, DataItem
+from templify.readers import ExtensionNotSupportedError, ReaderRegistry, object_readers, readers
 from templify.transformers import OrderByKey, filter_data, group_by_data, order_by_data
 
+type Mode = Literal["single", "each", "object"]
+"""How `render` writes: all rows in one file, one file per row, or one object in one file."""
+
+type FilterSchema = ExpressionWrapperDict | PredicateDict
+
 # -----------------------
-# utils
+# mode
 # -----------------------
 
 
-def _extract_extension(file: Path) -> str:
-    return file.suffix.lstrip(".")
+def _get_mode(
+    each: Annotated[  # noqa: FBT002 - typer flag
+        bool,
+        typer.Option(
+            "--each",
+            help="Render one file per row (or per group)",
+            rich_help_panel="Mode",
+        ),
+    ] = False,
+    object_: Annotated[  # noqa: FBT002 - typer flag
+        bool,
+        typer.Option(
+            "--object",
+            help="The data is a single object, render it into one file",
+            rich_help_panel="Mode",
+        ),
+    ] = False,
+) -> Mode:
+    if each and object_:
+        msg = "--each and --object can not be used together"
+        raise typer.BadParameter(msg)
+
+    if each:
+        return "each"
+
+    return "object" if object_ else "single"
 
 
 # -----------------------
 # read data
 # -----------------------
 
+DataFileOption = Annotated[
+    Path | None,
+    typer.Option(
+        "-d",
+        "--data",
+        help="Path to the data file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        rich_help_panel="Data Source (one of)",
+    ),
+]
 
-def _check_if_extension_is_supported(file: Path) -> Path:
-    extension = _extract_extension(file)
+SchemaFileOption = Annotated[
+    Path | None,
+    typer.Option(
+        "-s",
+        "--schema",
+        help="Path to a JSON Schema file, ask for the data matching it",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        rich_help_panel="Data Source (one of)",
+    ),
+]
 
-    if extension not in readers:
-        message = f"Extension {extension} is not supported"
-        raise typer.BadParameter(message)
 
-    return file
-
-
-def _read(
-    file: Annotated[
-        Path,
-        typer.Option(
-            "-d",
-            "--data",
-            help="Path to the data file",
-            exists=True,
-            file_okay=True,
-            dir_okay=False,
-            resolve_path=True,
-            callback=_check_if_extension_is_supported,
-        ),
-    ],
-) -> Data:
+def _load_schema(path: Path) -> Schema:
     try:
-        return readers[_extract_extension(file)](file)
+        schema: Schema = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        msg = f"Could not read schema file '{path.name}': {e}"
+        raise typer.BadParameter(msg) from e
+
+    error = check_schema(schema)
+
+    if error is not None:
+        msg = f"Invalid schema file '{path.name}': {error}"
+        raise typer.BadParameter(msg)
+
+    return schema
+
+
+def _read_source[T](
+    registry: ReaderRegistry[T],
+    ask: Callable[[Schema], T],
+    file: Path | None,
+    schema_path: Path | None,
+) -> T:
+    """Read `file` with `registry`, or ask for data matching the schema at `schema_path`."""
+    if (file is None) == (schema_path is None):
+        msg = "Give exactly one data source: -d / --data or -s / --schema"
+        raise typer.BadParameter(msg)
+
+    if schema_path is not None:
+        schema = _load_schema(schema_path)
+
+        try:
+            return ask(schema)
+        except (NotSupportedError, InvalidDataError) as e:
+            raise typer.BadParameter(str(e)) from e
+        except KeyboardInterrupt:
+            raise typer.Abort from None
+
+    assert file is not None  # checked above
+
+    try:
+        return registry[file.suffix.lstrip(".")](file)
+    except ExtensionNotSupportedError as e:
+        raise typer.BadParameter(str(e)) from e
     except (ValueError, BadZipFile) as e:
         msg = f"Could not read data file '{file.name}': {e}"
         raise typer.BadParameter(msg) from e
 
 
+def _read(
+    mode: Annotated[Mode, Depends(_get_mode)],
+    file: DataFileOption = None,
+    schema_path: SchemaFileOption = None,
+) -> Data | DataItem:
+    if mode == "object":
+        return _read_source(object_readers, ask_data, file, schema_path)
+
+    return _read_source(readers, ask_list, file, schema_path)
+
+
 # -----------------------
-# order data
+# data options
 # -----------------------
 
 
 def _get_order_by_keys(
-    keys: Annotated[
+    order: Annotated[
         list[str],
         typer.Option(
             "--order",
-            help="Columns to order by",
+            help="Columns to order by, -column for descending",
             default_factory=list,
+            show_default=False,
             rich_help_panel="Data Options",
         ),
     ],
 ) -> list[OrderByKey]:
-    return [OrderByKey(key) for key in keys]
+    return [OrderByKey(key) for key in order]
 
 
-def _order(
-    data: Annotated[Data, Depends(_read)],
-    keys: Annotated[list[OrderByKey], Depends(_get_order_by_keys)],
-) -> Data:
+def _get_filter_schema(
+    json_string: Annotated[
+        str | None,
+        typer.Option(
+            "--filter",
+            help="JSON string containing the filter schema",
+            rich_help_panel="Data Options",
+        ),
+    ] = None,
+) -> FilterSchema | None:
+    if json_string is None:
+        return None
+
     try:
-        return order_by_data(data, keys) if keys else data
-    except KeyError as e:
+        return json.loads(json_string)
+    except json.JSONDecodeError as e:
         raise typer.BadParameter(str(e)) from e
 
 
-# -----------------------
-# filter data
-# -----------------------
+def _get_group_keys(
+    group_by: Annotated[
+        list[str],
+        typer.Option(
+            "--group-by",
+            help="Columns to group by, each group holds its rows under --items-var",
+            default_factory=list,
+            show_default=False,
+            rich_help_panel="Data Options",
+        ),
+    ],
+) -> list[str]:
+    return group_by
 
 
 def _get_compiler() -> PredicateCompiler:
@@ -113,33 +222,36 @@ def _get_compiler() -> PredicateCompiler:
     )
 
 
-def _get_filter_schema_dict(
-    json_string: Annotated[
-        str | None,
-        typer.Option(
-            "--filter",
-            help="JSON string containing the filter schema",
-            rich_help_panel="Data Options",
-        ),
-    ] = None,
-) -> ExpressionWrapperDict | PredicateDict | None:
-    if json_string is None:
-        return None
+# -----------------------
+# pipeline: order → filter → group
+# -----------------------
+
+
+def _order(
+    data: Annotated[Data | DataItem, Depends(_read)],
+    order_keys: Annotated[list[OrderByKey], Depends(_get_order_by_keys)],
+    filter_schema: Annotated[FilterSchema | None, Depends(_get_filter_schema)],
+    group_keys: Annotated[list[str], Depends(_get_group_keys)],
+) -> Data | DataItem:
+    if isinstance(data, dict):
+        if order_keys or filter_schema is not None or group_keys:
+            msg = "--order, --filter and --group-by do not work with --object"
+            raise typer.BadParameter(msg)
+
+        return data
 
     try:
-        return json.loads(json_string)
-    except json.JSONDecodeError as e:
+        return order_by_data(data, order_keys) if order_keys else data
+    except KeyError as e:
         raise typer.BadParameter(str(e)) from e
 
 
 def _filter(
-    data: Annotated[Data, Depends(_order)],
+    data: Annotated[Data | DataItem, Depends(_order)],
     compiler: Annotated[PredicateCompiler, Depends(_get_compiler)],
-    schema: Annotated[
-        ExpressionWrapperDict | PredicateDict | None, Depends(_get_filter_schema_dict)
-    ],
-) -> Data:
-    if schema is None:
+    schema: Annotated[FilterSchema | None, Depends(_get_filter_schema)],
+) -> Data | DataItem:
+    if isinstance(data, dict) or schema is None:
         return data
 
     try:
@@ -156,36 +268,23 @@ def _filter(
         raise typer.BadParameter(msg) from e
 
 
-# -----------------------
-# group data
-# -----------------------
-
-
 def _group(
-    data: Annotated[Data, Depends(_filter)],
-    group_keys: Annotated[
-        list[str],
-        typer.Option(
-            "--group-by",
-            help="Columns to group by, each group holds its rows under --group-items",
-            default_factory=list,
-            rich_help_panel="Data Options",
-        ),
-    ],
-    group_items_key: Annotated[
+    data: Annotated[Data | DataItem, Depends(_filter)],
+    group_keys: Annotated[list[str], Depends(_get_group_keys)],
+    items_var: Annotated[
         str,
         typer.Option(
-            "--group-items",
+            "--items-var",
             help="Name of the variable that holds each group rows",
             rich_help_panel="Data Options",
         ),
     ] = "items",
-) -> Data:
-    if not group_keys:
+) -> Data | DataItem:
+    if isinstance(data, dict) or not group_keys:
         return data
 
     try:
-        return group_by_data(data, group_keys, group_items_key)
+        return group_by_data(data, group_keys, items_var)
     except (KeyError, ValueError) as e:
         raise typer.BadParameter(str(e)) from e
     except TypeError as e:
@@ -197,6 +296,9 @@ def _group(
 # DI
 # -----------------------
 
+ModeDI = Annotated[Mode, Depends(_get_mode)]
+"""Injects the `render` mode chosen with `--each` / `--object`."""
 
-DataDI = Annotated[Data, Depends(_group)]
-"""Injects the records read from `--data`, then ordered, filtered and grouped."""
+DataDI = Annotated[Data | DataItem, Depends(_group)]
+"""Injects the data from `--data` or `--schema`: a list ordered, filtered and grouped,
+or a single object with `--object`."""

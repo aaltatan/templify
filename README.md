@@ -2,10 +2,10 @@
 
 A command line tool that fills document templates with data.
 
-Point it at a **template** (Word, text, Markdown, HTML or JSON) and a **data file** (Excel or JSON). templify renders one file per row, or one file with every row in it. Before rendering, you can **order**, **filter** and **group** the data.
+Point it at a **template** (Word, text, Markdown, HTML or JSON) and a **data source**: an Excel or JSON file, or a JSON Schema that templify asks you to fill. templify renders one file per row, one file with every row in it, or one file from a single object. Before rendering, you can **order**, **filter** and **group** the data.
 
 ```bash
-templify m -t offer.docx -d employees.xlsx -o offers -k name
+templify render --each -t offer.docx -d employees.xlsx -o offers -n name
 ```
 
 ```text
@@ -25,10 +25,9 @@ offers/
 - [Quick start](#quick-start)
 - [How it works](#how-it-works)
 - [Commands](#commands)
-  - [`multiple-templates` (`m`)](#multiple-templates-m)
-  - [`single-template` (`s`)](#single-template-s)
-  - [`schema-template` (`js`) and `schema-list-template` (`jsl`)](#schema-template-js-and-schema-list-template-jsl)
-  - [`filters-json-schema` (`fjs`)](#filters-json-schema-fjs)
+  - [`render` (`r`)](#render-r)
+  - [`filters` (`f`)](#filters-f)
+  - [Upgrading from 0.2](#upgrading-from-02)
 - [Data sources](#data-sources)
 - [Templates](#templates)
   - [Supported formats](#supported-formats)
@@ -53,8 +52,8 @@ offers/
 ## Features
 
 - **Many template formats**: `.docx`, `.txt`, `.md`, `.html`, `.htm` and `.json`. The writer is picked automatically from the template's extension.
-- **Many data sources**: Excel (`.xlsx`) and JSON (`.json`).
-- **Two output modes**: one file per row (`multiple-templates`), or every row in one file (`single-template`).
+- **Many data sources**: Excel (`.xlsx`), JSON (`.json`), or answers asked from a JSON Schema (`-s`).
+- **One command, three modes**: every row in one file (`render`), one file per row (`render --each`), or one object in one file (`render --object`).
 - **Ordering** by any number of columns, ascending or descending.
 - **Filtering** with a JSON filter language: 50+ rules for strings, numbers, decimals, dates, datetimes and UUIDs. Rules combine with `all` / `any`, nest, and can be inverted.
 - **Grouping** by one or more columns, e.g. one file per department listing its employees.
@@ -110,7 +109,7 @@ You joined {{ department }} on {{ hired.strftime("%d/%m/%Y") }}.
 **3. Run templify:**
 
 ```bash
-templify m -t welcome.txt -d employees.xlsx -o welcome -k name
+templify render --each -t welcome.txt -d employees.xlsx -o welcome -n name
 ```
 
 `welcome/Rama.txt`:
@@ -124,21 +123,23 @@ You joined IT on 10/02/2024.
 
 ## How it works
 
-Every command runs the same pipeline:
+`render` runs one pipeline:
 
 ```text
  read data ──► order ──► filter ──► group ──► render template ──► save file(s)
-  (-d)        (--order)  (--filter)  (--group-by)    (-t)              (-o)
+ (-d / -s)    (--order)  (--filter)  (--group-by)    (-t)              (-o)
 ```
 
-1. **Read**: the data file becomes a list of rows, each row a set of `column: value` pairs.
+1. **Read**: the [data source](#data-sources) becomes a list of rows, each row a set of `column: value` pairs.
 2. **Order**: rows are sorted by `--order` columns (optional).
 3. **Filter**: rows not matching `--filter` are dropped (optional).
 4. **Group**: rows are grouped by `--group-by` columns (optional).
 5. **Render**: the writer chosen from the template extension renders the rows.
 6. **Save**:
-   - `multiple-templates` saves one file per row, or per group when grouping.
-   - `single-template` saves one file containing every row.
+   - by default, one file containing every row.
+   - with `--each`, one file per row, or per group when grouping.
+
+With `--object`, the data is a **single object** instead of a list, so steps 2 to 4 don't apply and that object is rendered into one file.
 
 ## Commands
 
@@ -146,83 +147,62 @@ Every command runs the same pipeline:
 templify --help
 ```
 
-| Command               | Aliases               | What it does                                 |
-| --------------------- | --------------------- | -------------------------------------------- |
-| `multiple-templates`  | `multiple`, `m`       | Render **one file per row** (or per group)   |
-| `single-template`     | `single`, `s`         | Render **one file** with all the rows        |
-| `schema-template`     | `schema`, `js`        | Ask for one object from a JSON Schema, render **one file** |
-| `schema-list-template`| `schema-list`, `jsl`  | Ask for a list from a JSON Schema, render **one file** |
-| `filters-json-schema` | `filters-schema`, `fjs` | List the filter rules and their arguments  |
+| Command   | Alias | What it does                                        |
+| --------- | ----- | --------------------------------------------------- |
+| `render`  | `r`   | Render a template with data, in one of three modes  |
+| `filters` | `f`   | List the filter rules and their arguments           |
 
-### `multiple-templates` (`m`)
-
-Renders the template once **per row**. Each row's columns are the template variables: `{{ name }}`, `{{ salary }}`, ...
+### `render` (`r`)
 
 ```bash
-templify m -t <template> -d <data> -o <output-dir> [OPTIONS]
+templify render -t <template> (-d <data> | -s <schema.json>) [--each | --object] [-o <output-dir>] [OPTIONS]
 ```
 
-| Option             | Short | Description                                                          | Default          |
-| ------------------ | ----- | -------------------------------------------------------------------- | ---------------- |
-| `--template`       | `-t`  | Template file. **Required.**                                         |                  |
-| `--data`           | `-d`  | Data file. **Required.**                                             |                  |
-| `--output`         | `-o`  | Output directory, created if missing. **Required.**                  |                  |
-| `--filename-key`   | `-k`  | Column whose value names each file                                   | `template-<n>`   |
-| `--index`          | `-i`  | Prefix each filename with its row number: `1 - Rama.docx`            | off              |
-| `--order`          |       | Column to order by, `-column` for descending. Repeatable             |                  |
-| `--filter`         |       | JSON [filter schema](#filter-schema)                                 |                  |
-| `--group-by`       |       | Column to [group](#grouping) by. Repeatable                          |                  |
-| `--group-items`    |       | Variable name holding each group's rows                              | `items`          |
+The mode decides what the template sees and how many files are written:
 
-Example:
+| Mode        | Data                | Writes                          | The template sees                                       |
+| ----------- | ------------------- | ------------------------------- | ------------------------------------------------------- |
+| *(default)* | a list of rows      | **one file** with all the rows  | the rows as a list, `objects`: `{% for e in objects %}` |
+| `--each`    | a list of rows      | **one file per row** (or group) | each row's columns: `{{ name }}`, `{{ salary }}`        |
+| `--object`  | a **single object** | **one file**                    | the object as `object`: `{{ object.name }}`             |
 
-```bash
-templify m -t offer.docx -d employees.xlsx -o offers -k name --index
-```
+| Option        | Short | Modes               | Description                                                     | Default              |
+| ------------- | ----- | ------------------- | --------------------------------------------------------------- | -------------------- |
+| `--template`  | `-t`  | all                 | Template file. **Required.**                                    |                      |
+| `--data`      | `-d`  | all                 | Data file. Exactly one of `-d` / `-s` is **required**           |                      |
+| `--schema`    | `-s`  | all                 | JSON Schema file, [ask for the data](#data-sources) matching it |                      |
+| `--output`    | `-o`  | all                 | Output directory, created if missing                            | current directory    |
+| `--each`      |       |                     | One file per row (or per group)                                 | off                  |
+| `--object`    |       |                     | The data is a single object                                     | off                  |
+| `--filename`  | `-f`  | default, `--object` | Output filename **without** extension                           | the template's name  |
+| `--var`       | `-v`  | default, `--object` | Name of the variable holding the data                           | `objects` / `object` |
+| `--name-by`   | `-n`  | `--each`            | Column whose value names each file                              | `template-<n>`       |
+| `--numbered`  |       | `--each`            | Prefix each filename with its row number: `1 - Rama.docx`       | off                  |
+| `--order`     |       | default, `--each`   | Column to [order](#ordering) by, `-column` for descending. Repeatable |                |
+| `--filter`    |       | default, `--each`   | JSON [filter schema](#filter-schema)                            |                      |
+| `--group-by`  |       | default, `--each`   | Column to [group](#grouping) by. Repeatable                     |                      |
+| `--items-var` |       | default, `--each`   | Variable name holding each group's rows                         | `items`              |
 
-```text
-offers/
-├── 1 - Abdullah.docx
-├── 2 - Rawaa.docx
-├── 3 - Rama.docx
-└── 4 - Omar.docx
-```
+An option used in a mode that doesn't take it is an error, never silently ignored:
+`--name-by only works with --each`.
 
-### `single-template` (`s`)
+#### All rows in one file (default)
 
-Renders the template **once**, with every row in a list variable (`data` by default). The template loops over it.
-
-```bash
-templify s -t <template> -d <data> -o <output-dir> [OPTIONS]
-```
-
-| Option            | Short | Description                                                | Default                |
-| ----------------- | ----- | ---------------------------------------------------------- | ---------------------- |
-| `--template`      | `-t`  | Template file. **Required.**                               |                        |
-| `--data`          | `-d`  | Data file. **Required.**                                   |                        |
-| `--output`        | `-o`  | Output directory, created if missing. **Required.**        |                        |
-| `--filename`      | `-f`  | Output filename **without** extension                      | the template's name    |
-| `--data-variable` | `-v`  | Name of the list variable inside the template              | `data`                 |
-| `--order`         |       | Column to order by, `-column` for descending. Repeatable   |                        |
-| `--filter`        |       | JSON [filter schema](#filter-schema)                       |                        |
-| `--group-by`      |       | Column to [group](#grouping) by. Repeatable                |                        |
-| `--group-items`   |       | Variable name holding each group's rows                    | `items`                |
-
-Example with `team.md`:
+`team.md`:
 
 ```jinja
 # Team report
 
 | # | Name | Department | Salary |
 |---|------|------------|-------:|
-{% for e in data -%}
+{% for e in objects -%}
 | {{ loop.index }} | {{ e.name }} | {{ e.department }} | {{ "{:,}".format(e.salary) }} |
 {% endfor %}
-**Total salaries:** {{ data | sum(attribute="salary") }}
+**Total salaries:** {{ objects | sum(attribute="salary") }}
 ```
 
 ```bash
-templify s -t team.md -d employees.xlsx -o reports --order -salary
+templify render -t team.md -d employees.xlsx -o reports --order -salary
 ```
 
 `reports/team.md`:
@@ -243,44 +223,42 @@ templify s -t team.md -d employees.xlsx -o reports --order -salary
 Rename the output and the loop variable:
 
 ```bash
-templify s -t team.md -d employees.xlsx -o reports -f "2024 team" -v employees
+templify render -t team.md -d employees.xlsx -o reports -f "2024 team" -v employees
 ```
 
 The template then loops with `{% for e in employees %}`, and the file is saved as `reports/2024 team.md`.
 
-### `schema-template` (`js`) and `schema-list-template` (`jsl`)
-
-No data file: [schemify](https://github.com/aaltatan/schemify-cli) asks for the data matching a
-JSON Schema file, then it is rendered into **one file**. `schema-template` asks for one object,
-`schema-list-template` for a list of them.
-
-| Option            | Short | Description                                         | Default             |
-| ----------------- | ----- | --------------------------------------------------- | ------------------- |
-| `--json-schema`   | `--js`| JSON Schema file. **Required.**                     |                     |
-| `--template`      | `-t`  | Template file. **Required.**                        |                     |
-| `--output`        | `-o`  | Output directory, created if missing. **Required.** |                     |
-| `--filename`      | `-f`  | Output filename **without** extension               | the template's name |
-| `--data-variable` | `-v`  | Name of the variable holding the data               | `data`              |
+#### One file per row (`--each`)
 
 ```bash
-templify js  --js person.schema.json -t letter.docx -o out   # Hello {{ data.name }}
-templify jsl --js person.schema.json -t team.md -o out       # {% for p in data %}...{% endfor %}
+templify render -t offer.docx -d employees.xlsx -o offers --each -n name --numbered
 ```
 
-`schema-template` fills one object:
+```text
+offers/
+├── 1 - Abdullah.docx
+├── 2 - Rawaa.docx
+├── 3 - Rama.docx
+└── 4 - Omar.docx
+```
 
-![templify schema-template](https://raw.githubusercontent.com/aaltatan/templify/main/docs/demo/schema.gif)
+#### One object (`--object`)
 
-`schema-list-template` keeps asking for items until you answer **No**:
+```bash
+templify render -t letter.docx -d rama.json --object            # Hello {{ object.name }}
+templify render -t letter.docx -s person.schema.json --object   # asks for the fields first
+```
 
-![templify schema-list-template](https://raw.githubusercontent.com/aaltatan/templify/main/docs/demo/schema-list.gif)
+With `-s`, [schemify](https://github.com/aaltatan/schemify-cli) asks for the fields:
 
-### `filters-json-schema` (`fjs`)
+![templify render --object](https://raw.githubusercontent.com/aaltatan/templify/main/docs/demo/schema.gif)
+
+### `filters` (`f`)
 
 Lists every filter rule you can use in `--filter`, with its arguments (in `args` order) and description:
 
 ```bash
-templify fjs
+templify filters
 ```
 
 ```text
@@ -298,14 +276,43 @@ templify fjs
 
 The argument names are also the `kwargs` names: `{"key": "salary", "value": 1400}`.
 
+### Upgrading from 0.2
+
+| 0.2                                      | 0.3                                       |
+| ---------------------------------------- | ----------------------------------------- |
+| `templify single-template` / `s`         | `templify render`                         |
+| `templify multiple-templates` / `m`      | `templify render --each`                  |
+| `templify schema-template` / `js`        | `templify render --object -s ...`         |
+| `templify schema-list-template` / `jsl`  | `templify render -s ...`                  |
+| `templify filters-json-schema` / `fjs`   | `templify filters`                        |
+| `-k` / `--filename-key`                  | `-n` / `--name-by`                        |
+| `-i` / `--index`                         | `--numbered`                              |
+| `--group-items`                          | `--items-var`                             |
+| `-v` / `--data-variable`, default `data` | `-v` / `--var`, default `objects`         |
+| `-o` required                            | `-o` optional, default current directory  |
+| Template errors exit with code 2         | exit with code 1 (usage errors stay 2)    |
+
 ## Data sources
 
-The reader is chosen from the data file extension, ignoring case.
+`render` takes **exactly one** data source:
+
+- `-d` / `--data`: a data file. The reader is chosen from its extension, ignoring case.
+- `-s` / `--schema`: a JSON Schema file. [schemify](https://github.com/aaltatan/schemify-cli) asks for the data matching it: a list (keep answering until you say **No**), or one object with `--object`.
+
+![templify render -s](https://raw.githubusercontent.com/aaltatan/templify/main/docs/demo/schema-list.gif)
+
+Data files for the default mode and `--each` hold a **list of objects**:
 
 | Extension | Format                                                                      |
 | --------- | --------------------------------------------------------------------------- |
 | `.xlsx`   | Excel workbook: the **active sheet**, first row = column names              |
 | `.json`   | A JSON **list of objects**: `[{"name": "Rama", ...}, ...]`                  |
+
+Data files for `--object` hold a **single object**:
+
+| Extension | Format                                                                      |
+| --------- | --------------------------------------------------------------------------- |
+| `.json`   | A JSON **object**: `{"name": "Rama", ...}`                                  |
 
 **Excel notes**
 
@@ -357,7 +364,7 @@ All templates use [Jinja2](https://jinja.palletsprojects.com/en/stable/templates
 | ------------------------------------------ | ---------------------------------------- |
 | `{{ name }}`                               | Print a variable                         |
 | `{{ e.name }}` or `{{ e["name"] }}`        | Print a field of a row                   |
-| `{% for e in data %} ... {% endfor %}`     | Loop                                     |
+| `{% for e in objects %} ... {% endfor %}`     | Loop                                     |
 | `{{ loop.index }}`                         | 1-based loop counter                     |
 | `{% if salary > 1400 %} ... {% endif %}`   | Condition                                |
 | `{{ name \| upper }}`                      | Filter: `upper`, `lower`, `title`, `length`, `sum`, `default`, `tojson`, ... |
@@ -397,24 +404,24 @@ docxtpl adds special tags for Word structure:
 
 | Tag                                 | Use                                                     |
 | ----------------------------------- | ------------------------------------------------------- |
-| `{%p for e in data %}` ... `{%p endfor %}` | Loop over **paragraphs**: each tag sits on its own paragraph |
-| `{%tr for e in data %}` ... `{%tr endfor %}` | Loop over **table rows**: one row per record          |
+| `{%p for e in objects %}` ... `{%p endfor %}` | Loop over **paragraphs**: each tag sits on its own paragraph |
+| `{%tr for e in objects %}` ... `{%tr endfor %}` | Loop over **table rows**: one row per record          |
 | `{%tc ... %}`                       | Loop over table cells                                   |
 | `{%r ... %}`                        | Tag applied to a run                                    |
 
 **One Word file, one page per employee** (`all-offers.docx`, three paragraphs):
 
 ```text
-{%p for e in data %}
+{%p for e in objects %}
 {{ e.name }} - {{ e.department }}{{ page_break }}
 {%p endfor %}
 ```
 
 ```bash
-templify s -t all-offers.docx -d employees.xlsx -o offers
+templify render -t all-offers.docx -d employees.xlsx -o offers
 ```
 
-**A Word table with one row per employee**: create a 2-row table. Put `{%tr for e in data %}` and `{%tr endfor %}` in rows of their own, around a row containing `{{ e.name }}`, `{{ e.salary }}`, ...
+**A Word table with one row per employee**: create a 2-row table. Put `{%tr for e in objects %}` and `{%tr endfor %}` in rows of their own, around a row containing `{{ e.name }}`, `{{ e.salary }}`, ...
 
 See the [docxtpl documentation](https://docxtpl.readthedocs.io/) for images, rich text and more.
 
@@ -436,7 +443,7 @@ Always write values through the `tojson` filter. It adds quotes and escapes char
 ```
 
 ```bash
-templify m -t profile.json -d employees.json -o profiles -k name
+templify render --each -t profile.json -d employees.json -o profiles -n name
 ```
 
 `profiles/Omar.json`:
@@ -453,11 +460,11 @@ templify m -t profile.json -d employees.json -o profiles -k name
 Dump the whole (ordered / filtered / grouped) dataset:
 
 ```jinja
-{{ data | tojson(indent=2) }}
+{{ objects | tojson(indent=2) }}
 ```
 
 ```bash
-templify s -t all.json -d employees.xlsx -o export -f employees --order name
+templify render -t all.json -d employees.xlsx -o export -f employees --order name
 ```
 
 > `tojson` sorts object keys alphabetically.
@@ -488,7 +495,7 @@ Invalid value: Template Error: Rendered output is not valid JSON: Expecting ',' 
 ```
 
 ```bash
-templify m -t department.html -d employees.xlsx -o departments --group-by department -k department
+templify render --each -t department.html -d employees.xlsx -o departments --group-by department -n department
 ```
 
 > Values are **not** HTML-escaped, so `<b>` in your data stays bold. If the data isn't trusted, escape it with `{{ value | e }}`.
@@ -497,15 +504,15 @@ templify m -t department.html -d employees.xlsx -o departments --group-by depart
 
 | Situation                                   | Result                                              |
 | ------------------------------------------- | --------------------------------------------------- |
-| No `-k`                                     | `template-1.txt`, `template-2.txt`, ...             |
+| No `-n`                                     | `template-1.txt`, `template-2.txt`, ...             |
 | `-k name`                                   | `Rama.txt`                                          |
 | `-k name -i`                                | `3 - Rama.txt`                                      |
-| The `-k` column is empty or missing for a row | That row falls back to `template-<n>.txt`         |
+| The `-n` column is empty or missing for a row | That row falls back to `template-<n>.txt`         |
 | The value has invalid characters: `a/b:c?`  | They become `_`: `a_b_c_.txt`                       |
 | The value is a number: `-k id`              | `42.txt`                                            |
 | The file already exists                     | A short random suffix is added: `Rama-3f9a1c2e.txt`. **Nothing is ever overwritten** |
 | The output folder doesn't exist             | It is created, including parent folders             |
-| `single-template` without `-f`              | Named after the template: `team.md` → `team.md`     |
+| `render` without `-f`                       | Named after the template: `team.md` → `team.md`     |
 
 Output files are written as **UTF-8**, with the template's line endings kept as they are.
 
@@ -515,10 +522,10 @@ Output files are written as **UTF-8**, with the template's line endings kept as 
 
 ```bash
 # highest salary first
-templify s -t names.txt -d employees.xlsx -o out --order -salary
+templify render -t names.txt -d employees.xlsx -o out --order -salary
 
 # by department A→Z, then by salary high→low inside each department
-templify s -t names.txt -d employees.xlsx -o out --order department --order -salary
+templify render -t names.txt -d employees.xlsx -o out --order department --order -salary
 ```
 
 ```text
@@ -558,17 +565,17 @@ Ordering by a column that doesn't exist fails with the list of available columns
 
 ```bash
 # IT only
-templify s -t names.txt -d employees.xlsx -o out \
+templify render -t names.txt -d employees.xlsx -o out \
   --filter '{"name": "string__eq", "args": ["department", "IT"], "kwargs": {}, "inverse": false}'
 # → Rawaa Rama
 
 # everyone except IT
-templify s -t names.txt -d employees.xlsx -o out \
+templify render -t names.txt -d employees.xlsx -o out \
   --filter '{"name": "string__eq", "args": ["department", "IT"], "kwargs": {}, "inverse": true}'
 # → Abdullah Omar
 
 # same rule, arguments by name
-templify s -t names.txt -d employees.xlsx -o out \
+templify render -t names.txt -d employees.xlsx -o out \
   --filter '{"name": "int__gt", "args": [], "kwargs": {"key": "salary", "value": 1400}, "inverse": false}'
 # → Rawaa Rama
 ```
@@ -582,7 +589,7 @@ templify s -t names.txt -d employees.xlsx -o out \
 
 ```bash
 # in Homs AND earning at least 1300
-templify s -t names.txt -d employees.xlsx -o out --filter '{
+templify render -t names.txt -d employees.xlsx -o out --filter '{
   "operator": "all",
   "expressions": [
     {"name": "string__eq", "args": ["city", "Homs"], "kwargs": {}, "inverse": false},
@@ -592,7 +599,7 @@ templify s -t names.txt -d employees.xlsx -o out --filter '{
 # → Rama
 
 # in Aleppo OR earning more than 1700
-templify s -t names.txt -d employees.xlsx -o out --filter '{
+templify render -t names.txt -d employees.xlsx -o out --filter '{
   "operator": "any",
   "expressions": [
     {"name": "string__eq", "args": ["city", "Aleppo"], "kwargs": {}, "inverse": false},
@@ -606,7 +613,7 @@ Expressions **nest** to any depth:
 
 ```bash
 # IT AND (in Damascus OR hired since 2024)
-templify s -t names.txt -d employees.xlsx -o out --filter '{
+templify render -t names.txt -d employees.xlsx -o out --filter '{
   "operator": "all",
   "expressions": [
     {"name": "string__eq", "args": ["department", "IT"], "kwargs": {}, "inverse": false},
@@ -686,12 +693,12 @@ They compare the **day only** and accept every form a date comes in:
 
 ```bash
 # hired in 2024 or later (Excel dates)
-templify s -t names.txt -d employees.xlsx -o out \
+templify render -t names.txt -d employees.xlsx -o out \
   --filter '{"name": "date__ge", "args": ["hired", "2024-01-01"], "kwargs": {}, "inverse": false}'
 # → Rama Omar
 
 # hired before 2024 (JSON string dates)
-templify s -t names.txt -d employees.json -o out \
+templify render -t names.txt -d employees.json -o out \
   --filter '{"name": "date__lt", "args": ["hired", "2024-01-01"], "kwargs": {}, "inverse": false}'
 # → Abdullah Rawaa
 
@@ -715,7 +722,7 @@ templify s -t names.txt -d employees.json -o out \
 `--group-by <column>` merges rows that share the same value into **one group**. Each group is a new row holding:
 
 - the group-by column(s), with the shared value
-- `items` (rename it with `--group-items`), the list of the original rows in that group
+- `items` (rename it with `--items-var`), the list of the original rows in that group
 
 ```text
 rows:                                  groups (--group-by department):
@@ -727,10 +734,10 @@ rows:                                  groups (--group-by department):
 
 Groups appear in the order their first row appears. Grouping runs **after** ordering and filtering, so `--order` also sorts the rows inside every group, and `--filter` decides which rows get grouped.
 
-**One file per group**, with `multiple-templates`: `-k` can name files after the group column.
+**One file per group**, with `render --each`: `-n` can name files after the group column.
 
 ```bash
-templify m -t department.html -d employees.xlsx -o departments --group-by department -k department
+templify render --each -t department.html -d employees.xlsx -o departments --group-by department -n department
 ```
 
 ```text
@@ -739,20 +746,20 @@ departments/
 └── IT.html
 ```
 
-**One report of all groups**, with `single-template`: loop over groups, then over each group's rows.
+**One report of all groups**, with `render`: loop over groups, then over each group's rows.
 
 `by-city.txt`:
 
 ```jinja
-{% for group in data -%}
+{% for group in objects -%}
 {{ group.city }} / {{ group.department }}:
 {%- for e in group.people %} {{ e.name }}{% endfor %}
 {% endfor %}
 ```
 
 ```bash
-templify s -t by-city.txt -d employees.xlsx -o out \
-  --order city --group-by city --group-by department --group-items people
+templify render -t by-city.txt -d employees.xlsx -o out \
+  --order city --group-by city --group-by department --items-var people
 ```
 
 ```text
@@ -776,7 +783,7 @@ Useful group-level expressions:
 | Problem                                                  | Message                                             |
 | -------------------------------------------------------- | --------------------------------------------------- |
 | The column doesn't exist                                 | `Key 'country' not found in data, Available keys: ...` |
-| `--group-items` equals a group-by column                 | `Items key 'city' can not be one of the group by keys` |
+| `--items-var` equals a group-by column                   | `Items key 'city' can not be one of the group by keys` |
 | The column holds lists or objects (JSON)                 | `Can not group by unhashable values ...`            |
 
 ## Cookbook
@@ -784,20 +791,20 @@ Useful group-level expressions:
 **Offer letters in Word, one per employee, numbered:**
 
 ```bash
-templify m -t offer.docx -d employees.xlsx -o offers -k name -i
+templify render --each -t offer.docx -d employees.xlsx -o offers -n name --numbered
 ```
 
 **Only employees hired this year, newest first:**
 
 ```bash
-templify m -t offer.docx -d employees.xlsx -o new-hires -k name --order -hired \
+templify render --each -t offer.docx -d employees.xlsx -o new-hires -n name --order -hired \
   --filter '{"name": "date__ge", "args": ["hired", "2024-01-01"], "kwargs": {}, "inverse": false}'
 ```
 
 **Emails only for people who have an email address:**
 
 ```bash
-templify m -t email.txt -d employees.xlsx -o emails -k email \
+templify render --each -t email.txt -d employees.xlsx -o emails -n email \
   --filter '{"name": "is_null", "args": ["email"], "kwargs": {}, "inverse": true}'
 ```
 
@@ -815,39 +822,42 @@ Total: {{ items | sum(attribute="salary") }}
 ```
 
 ```bash
-templify m -t department.md -d employees.xlsx -o reports -k department --group-by department --order -salary
+templify render --each -t department.md -d employees.xlsx -o reports -n department --group-by department --order -salary
 ```
 
 **Convert Excel to JSON:**
 
 ```bash
-templify s -t all.json -d employees.xlsx -o export -f employees
+templify render -t all.json -d employees.xlsx -o export -f employees
 ```
 
-with `all.json` containing `{{ data | tojson(indent=2) }}`.
+with `all.json` containing `{{ objects | tojson(indent=2) }}`.
 
 **One JSON file per record, for an API import:**
 
 ```bash
-templify m -t profile.json -d employees.xlsx -o api -k email
+templify render --each -t profile.json -d employees.xlsx -o api -n email
 ```
 
 **A single printable Word file, one page per employee:**
 
 ```bash
-templify s -t all-offers.docx -d employees.xlsx -o print --order name
+templify render -t all-offers.docx -d employees.xlsx -o print --order name
 ```
 
-**Name files with two columns**: templify names files from one column, so add a combined column to your data (an Excel formula like `=A2&" - "&B2` works once the file is saved in Excel), then use `-k full_title`.
+**Name files with two columns**: templify names files from one column, so add a combined column to your data (an Excel formula like `=A2&" - "&B2` works once the file is saved in Excel), then use `-n full_title`.
 
 ## Errors
 
-templify reports problems as short messages and exits with code `2`:
+templify reports problems as short messages. Bad input (options, data, template files) exits with code `2`; a template that fails while rendering exits with code `1`:
 
 | Problem                                          | Example message                                                        |
 | ------------------------------------------------ | ---------------------------------------------------------------------- |
 | Unsupported template extension                   | `Template extension 'pdf' is not supported, supported: docx, htm, ...` |
-| Unsupported data extension                       | `Extension csv is not supported`                                       |
+| Unsupported data extension                       | `Extension 'csv' is not supported for being a data file`               |
+| Both or neither of `-d` / `-s`                   | `Give exactly one data source: -d / --data or -s / --schema`           |
+| Option used in the wrong mode                    | `--name-by only works with --each`                                     |
+| `--each` with `--object`                         | `--each and --object can not be used together`                         |
 | File doesn't exist / is a folder                 | `File '...' does not exist.`                                           |
 | Jinja syntax error in the template               | `Template Error: unexpected '}'`                                       |
 | Corrupted `.docx` template                       | `Could not load template 't.docx': ...`                                |
@@ -865,7 +875,7 @@ Each extension point is a registry filled with a decorator. Add your code, and t
 
 ### A new data source
 
-`src/templify/readers.py`: a function that takes a path and returns a list of dicts.
+`src/templify/readers.py`: a function that takes a path and returns a list of dicts, registered on `readers`. A reader for `render --object` returns one dict and is registered on `object_readers`.
 
 ```python
 import csv
@@ -901,8 +911,9 @@ class PptxWriter:
     def __init__(self, template_path: Path) -> None:
         self.template_path = template_path
 
-    def write(self, context: Context, filepath: Path) -> None:
-        ...  # render context into the template and save to filepath
+    def write(
+        self, context: Context, filepath: Path
+    ) -> None: ...  # render context into the template and save to filepath
 ```
 
 A format that needs validation can extend `TextWriter` and override `render`, the way `JsonWriter` does.
@@ -955,7 +966,7 @@ vhs docs/demo/schema.tape && vhs docs/demo/schema-list.tape
 ```text
 src/templify/
 ├── models.py            # Data / DataItem types
-├── readers.py           # data sources: ReaderRegistry, read_excel, read_json
+├── readers.py           # data sources: readers / object_readers, read_excel, read_json
 ├── writers.py           # Writer protocol, WriterRegistry, Docx/Text/Json writers,
 │                        #   write_single / write_multiple, file naming
 ├── transformers.py      # order_by_data, filter_data, group_by_data

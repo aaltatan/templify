@@ -5,6 +5,7 @@ from pathlib import Path
 import docx
 import openpyxl
 import pytest
+
 from templify.models import Data
 
 type MakeFile = Callable[[str, str], Path]

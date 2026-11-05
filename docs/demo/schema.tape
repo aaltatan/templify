@@ -3,7 +3,7 @@ Set Height 600
 Source docs/demo/common.tape
 
 Type "Get-Content letter.md" Enter Sleep 1500ms
-Type "templify js --js person.schema.json -t letter.md -o out"
+Type "templify render --object -s person.schema.json -t letter.md -o out"
 Sleep 300ms
 Enter
 Sleep 3s

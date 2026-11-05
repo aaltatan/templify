@@ -25,11 +25,11 @@ function global:prompt { "> " }
 }
 '@ | Set-Content person.schema.json
 
-"Dear {{ data.full_name }}, happy {{ data.age }}th birthday!" | Set-Content letter.md
+"Dear {{ object.full_name }}, happy {{ object.age }}th birthday!" | Set-Content letter.md
 
 @'
 # Team
-{% for p in data %}
+{% for p in objects %}
 - {{ p.full_name }} ({{ p.age }})
 {% endfor %}
 '@ | Set-Content team.md

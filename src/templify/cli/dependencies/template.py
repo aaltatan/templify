@@ -8,7 +8,7 @@ import typer
 from jinja2 import TemplateError
 from typer_di import Depends
 
-from templify.writers import Writer, writers
+from templify.writers import TemplateExtensionNotSupportedError, Writer, writers
 
 # -----------------------
 # template
@@ -28,17 +28,6 @@ class Template:
         return self.path.suffix.lstrip(".").lower()
 
 
-def _check_if_extension_is_supported(file: Path) -> Path:
-    extension = file.suffix.lstrip(".")
-
-    if extension not in writers:
-        supported = ", ".join(writers.extensions)
-        message = f"Template extension '{extension}' is not supported, supported: {supported}"
-        raise typer.BadParameter(message)
-
-    return file
-
-
 def _get_template(
     template_path: Annotated[
         Path,
@@ -50,12 +39,13 @@ def _get_template(
             file_okay=True,
             dir_okay=False,
             resolve_path=True,
-            callback=_check_if_extension_is_supported,
         ),
     ],
 ) -> Template:
     try:
         return Template(path=template_path, writer=writers.create(template_path))
+    except TemplateExtensionNotSupportedError as e:
+        raise typer.BadParameter(str(e)) from e
     except TemplateError as e:
         msg = f"Template Error: {e}"
         raise typer.BadParameter(msg) from e
@@ -75,12 +65,13 @@ def _get_output_dir(
         typer.Option(
             "-o",
             "--output",
-            help="Path to the output directory",
+            help=r"Path to the output directory \[default: current directory]",
+            show_default=False,
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
         ),
-    ],
+    ] = Path(),
 ) -> Path:
     return output_path
 

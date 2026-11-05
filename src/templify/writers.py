@@ -55,8 +55,10 @@ class InvalidOutputError(Exception):
 class TemplateExtensionNotSupportedError(Exception):
     """Raised when no writer is registered for a template file extension."""
 
-    def __init__(self, extension: str) -> None:
-        message = f"Extension '{extension}' is not supported for being a template file"
+    def __init__(self, extension: str, supported: list[str]) -> None:
+        message = (
+            f"Template extension '{extension}' is not supported, supported: {', '.join(supported)}"
+        )
         super().__init__(message)
 
 
@@ -92,7 +94,7 @@ class WriterRegistry:
 
         """
         if extension not in self:
-            raise TemplateExtensionNotSupportedError(extension)
+            raise TemplateExtensionNotSupportedError(extension, self.extensions)
         return self._factories[extension.lower()]
 
     @property
@@ -216,29 +218,29 @@ class JsonWriter(TextWriter):
 
 def write_single(  # noqa: PLR0913
     writer: Writer,
-    data: Data,
+    value: Data | DataItem,
     *,
+    var_name: str,
     output_dir: Path,
     filename: str,
     extension: str,
-    data_variable: str = "data",
 ) -> Path:
-    """Render all the data into one file, the template loops over `data_variable`.
+    """Render `value` (all the records, or a single one) into one file.
 
     Args:
         writer: Renders and saves the file.
-        data: The records, available in the template as `data_variable`.
+        value: The records or the single record, available in the template as `var_name`.
+        var_name: The template variable holding `value`.
         output_dir: Where to save the file, created if missing.
         filename: The file name without extension.
         extension: The file extension, without the dot.
-        data_variable: The template variable holding `data`.
 
     Returns:
         The saved file path. A random suffix is added if the file already exists.
 
     """
     filepath = _generate_filepath(filename, output_dir, extension)
-    writer.write({data_variable: data, **ADDITIONAL_CONTEXT}, filepath)
+    writer.write({var_name: value, **ADDITIONAL_CONTEXT}, filepath)
     return filepath
 
 
