@@ -17,10 +17,8 @@ from pyspecification import (
     RuleDoesNotExistError,
     RuleKeyDoesNotExistError,
 )
-from schemify.fillers import InvalidDataError, ask_data, ask_list
-from schemify.models import Schema
-from schemify.registry import NotSupportedError
-from schemify.validators import check_schema
+from schemify import Schema, ask_data, ask_list
+from schemify.cli.dependencies.schema import ask_or_abort, load_schema
 from typer_di import Depends
 
 from templify.filter_rules import rules
@@ -99,22 +97,6 @@ SchemaFileOption = Annotated[
 ]
 
 
-def _load_schema(path: Path) -> Schema:
-    try:
-        schema: Schema = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError) as e:
-        msg = f"Could not read schema file '{path.name}': {e}"
-        raise typer.BadParameter(msg) from e
-
-    error = check_schema(schema)
-
-    if error is not None:
-        msg = f"Invalid schema file '{path.name}': {error}"
-        raise typer.BadParameter(msg)
-
-    return schema
-
-
 def _read_source[T](
     registry: ReaderRegistry[T],
     ask: Callable[[Schema], T],
@@ -127,14 +109,7 @@ def _read_source[T](
         raise typer.BadParameter(msg)
 
     if schema_path is not None:
-        schema = _load_schema(schema_path)
-
-        try:
-            return ask(schema)
-        except (NotSupportedError, InvalidDataError) as e:
-            raise typer.BadParameter(str(e)) from e
-        except KeyboardInterrupt:
-            raise typer.Abort from None
+        return ask_or_abort(load_schema(schema_path), ask)
 
     assert file is not None  # checked above
 
