@@ -4,6 +4,7 @@ from typing import Annotated, Any, NoReturn
 
 import typer
 from jinja2 import TemplateError
+from pyrecords import rules
 from pyspecification import get_expression_json_schema
 from rich.markup import escape
 from rich.progress import track
@@ -14,7 +15,6 @@ from typer_swissknife import command
 from templify.cli.dependencies.console import ConsoleDI
 from templify.cli.dependencies.data import DataDI, Mode, ModeDI
 from templify.cli.dependencies.template import OutputDirDI, TemplateDI
-from templify.filter_rules import rules
 from templify.writers import InvalidOutputError, write_multiple, write_single
 
 from .help import RENDER_HELP_TEXT
@@ -27,7 +27,7 @@ app = TyperDI(
 
 
 @command(app, name="render", aliases=("r",), no_args_is_help=True, help=RENDER_HELP_TEXT)
-def render(  # noqa: PLR0913
+def render(  # noqa: PLR0913, PLR0917
     console: ConsoleDI,
     mode: ModeDI,
     data: DataDI,

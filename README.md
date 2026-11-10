@@ -873,11 +873,11 @@ templify reports problems as short messages. Bad input (options, data, template 
 
 ## Extending templify
 
-Each extension point is a registry filled with a decorator. Add your code, and the CLI picks it up automatically, including `--help` and the error messages.
+Each extension point is a registry filled with a decorator. Add your code, and the CLI picks it up automatically, including `--help` and the error messages. Data sources and filter rules live in [pyrecords](https://github.com/aaltatan/pyrecords), shared with other CLIs.
 
 ### A new data source
 
-`src/templify/readers.py`: a function that takes a path and returns a list of dicts, registered on `readers`. A reader for `render --object` returns one dict and is registered on `object_readers`.
+`pyrecords/readers.py`: a function that takes a path and returns a list of dicts, registered on `readers`. A reader for `render --object` returns one dict and is registered on `object_readers`.
 
 ```python
 import csv
@@ -922,7 +922,7 @@ A format that needs validation can extend `TextWriter` and override `render`, th
 
 ### A new filter rule
 
-`src/templify/filter_rules.py`: the first two parameters are the row and the column. A `Process` marker on a parameter converts the value coming from the filter JSON.
+`pyrecords/filter_rules.py`: the first two parameters are the row and the column. A `Process` marker on a parameter converts the value coming from the filter JSON.
 
 ```python
 @rules.rule()
@@ -967,12 +967,8 @@ vhs docs/demo/each.tape && vhs docs/demo/schema.tape && vhs docs/demo/schema-lis
 
 ```text
 src/templify/
-├── models.py            # Data / DataItem types
-├── readers.py           # data sources: readers / object_readers, read_excel, read_json
 ├── writers.py           # Writer protocol, WriterRegistry, Docx/Text/Json writers,
 │                        #   write_single / write_multiple, file naming
-├── transformers.py      # order_by_data, filter_data, group_by_data
-├── filter_rules.py      # every --filter rule
 └── cli/
     ├── main.py          # the commands
     ├── help.py          # long --help texts
@@ -981,10 +977,7 @@ src/templify/
         ├── template.py  # -t (picks the writer) and -o
         └── console.py   # rich console
 tests/
-├── test_readers.py
 ├── test_writers.py
-├── test_transformers.py
-├── test_filter_rules.py
 └── test_cli.py          # end-to-end user scenarios
 ```
 

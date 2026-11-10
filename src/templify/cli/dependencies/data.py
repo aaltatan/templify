@@ -7,10 +7,22 @@ from typing import Annotated, Literal
 from zipfile import BadZipFile
 
 import typer
+from pyrecords import (
+    Data,
+    DataItem,
+    ExtensionNotSupportedError,
+    OrderByKey,
+    ReaderRegistry,
+    filter_data,
+    get_compiler,
+    group_by_data,
+    object_readers,
+    order_by_data,
+    readers,
+)
 from pyspecification import (
     ArgumentError,
     ExpressionWrapperDict,
-    Predicate,
     PredicateCompiler,
     PredicateDict,
     ProcessArgumentError,
@@ -20,11 +32,6 @@ from pyspecification import (
 from schemify import Schema, ask_data, ask_list
 from schemify.cli.dependencies.schema import ask_or_abort, load_schema
 from typer_di import Depends
-
-from templify.filter_rules import rules
-from templify.models import Data, DataItem
-from templify.readers import ExtensionNotSupportedError, ReaderRegistry, object_readers, readers
-from templify.transformers import OrderByKey, filter_data, group_by_data, order_by_data
 
 type Mode = Literal["single", "each", "object"]
 """How `render` writes: all rows in one file, one file per row, or one object in one file."""
@@ -187,16 +194,6 @@ def _get_group_keys(
     return group_by
 
 
-def _get_compiler() -> PredicateCompiler:
-    return PredicateCompiler(
-        rules.rules,
-        lambda schema: Predicate(
-            lambda _: schema["operator"] == "all",
-            operator="logical",
-        ),
-    )
-
-
 # -----------------------
 # pipeline: order → filter → group
 # -----------------------
@@ -223,7 +220,7 @@ def _order(
 
 def _filter(
     data: Annotated[Data | DataItem, Depends(_order)],
-    compiler: Annotated[PredicateCompiler, Depends(_get_compiler)],
+    compiler: Annotated[PredicateCompiler, Depends(get_compiler)],
     schema: Annotated[FilterSchema | None, Depends(_get_filter_schema)],
 ) -> Data | DataItem:
     if isinstance(data, dict) or schema is None:

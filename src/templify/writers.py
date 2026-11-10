@@ -9,8 +9,7 @@ from uuid import uuid4
 
 from docxtpl import DocxTemplate
 from jinja2 import Environment, FileSystemLoader
-
-from .models import Data, DataItem
+from pyrecords import Data, DataItem
 
 type Context = dict[str, Any]
 """The variables a template is rendered with."""
