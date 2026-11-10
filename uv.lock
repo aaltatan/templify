@@ -727,6 +727,44 @@ wheels = [
 ]
 
 [[package]]
+name = "pyordering"
+version = "0.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyvocabulary" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/94/a2/ab254f69f49fa0e88a53b8440605d82867c9627598323bfc3708ad8861e2/pyordering-0.1.3.tar.gz", hash = "sha256:83ec5386c3fb05bac85ddfdf50787a4c06fbb817c3e7f5e458af7fa7f73238b4", size = 14799, upload-time = "2026-11-08T16:28:50.38Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/70/17/c71b86d2073311abcd95338c9e196295eca66896589f517192147a565756/pyordering-0.1.3-py3-none-any.whl", hash = "sha256:cbd64c5b35d275af201e6b7bf9ad580706f6e387b8620f05018606095d597551", size = 16416, upload-time = "2026-11-08T16:28:48.962Z" },
+]
+
+[[package]]
+name = "pyrecords"
+version = "0.2.0"
+source = { editable = "../../python-packages/pyrecords" }
+dependencies = [
+    { name = "openpyxl" },
+    { name = "pyordering" },
+    { name = "pyspecification" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "pyordering", specifier = ">=0.1.3" },
+    { name = "pyspecification", specifier = ">=4.0.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.13" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "pytest-cov", specifier = ">=7.0" },
+    { name = "ruff", specifier = ">=0.8" },
+    { name = "types-openpyxl" },
+]
+
+[[package]]
 name = "pyspecification"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -779,6 +817,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a9/f7/eddfe33871520adab45aaa1a71f0402a2252050c14c7e3009446c8f4701c/python_docx-1.2.0.tar.gz", hash = "sha256:7bc9d7b7d8a69c9c02ca09216118c86552704edc23bac179283f2e38f86220ce", size = 5723256, upload-time = "2025-06-16T20:46:27.921Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/00/1e03a4989fa5795da308cd774f05b704ace555a70f9bf9d3be057b680bcf/python_docx-1.2.0-py3-none-any.whl", hash = "sha256:3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7", size = 252987, upload-time = "2025-06-16T20:46:22.506Z" },
+]
+
+[[package]]
+name = "pyvocabulary"
+version = "0.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyargprocessors" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b0/6c/7e76cdd457df0ab22bd7390f85af365b7f2d88043586348158a26a3ee40a/pyvocabulary-0.1.3.tar.gz", hash = "sha256:fabe060a4b9d5065a6da41b2e792d2deba056be9baf33848f8e2f15bc4c9525d", size = 14568, upload-time = "2026-11-08T15:54:30.385Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/02/77/27ca6c7a0d47bda191f4b9356c0e32b0e5635af0caaa981e788a648318cc/pyvocabulary-0.1.3-py3-none-any.whl", hash = "sha256:cae6247b22eac07d01935ec4c1dd4b4e7f02e0b8dc2ea22dd244fdf86a3e128f", size = 16038, upload-time = "2026-11-08T15:54:29.227Z" },
 ]
 
 [[package]]
@@ -955,7 +1005,7 @@ wheels = [
 
 [[package]]
 name = "schemify-cli"
-version = "0.1.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema" },
@@ -966,9 +1016,9 @@ dependencies = [
     { name = "typer-di" },
     { name = "typer-swissknife" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/60/d8/70b588cb45827eb4846742d86fcbe869588c0c3e58c29c9fac56eff3ac98/schemify_cli-0.1.0.tar.gz", hash = "sha256:de0953bf64ebe6854f269108121c6af56ccb27543c613205f7dbe02731e44ae7", size = 20436, upload-time = "2026-11-04T15:41:44.008Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/70/2472ff38505dd2d4153d366898f0c19618a88de0d9019f62033591af0438/schemify_cli-0.3.0.tar.gz", hash = "sha256:32cafd513c32f9e143d87fb84ef9db7267eeb2644c975144e7bf817ab82c6bf5", size = 21280, upload-time = "2026-11-07T09:20:01.704Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/64/93aee792bb0dc13838a677916460fb11146d090c78ad02987daf0d85ec42/schemify_cli-0.1.0-py3-none-any.whl", hash = "sha256:dcfc339e69285c87a96d337c0188b49990acbe1910dcb26c171f61097717c97b", size = 25122, upload-time = "2026-11-04T15:41:42.08Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/59/ed725883da3de4ff7e5e662b9714eb503d1f892d17ebb6d11cac06f6da06/schemify_cli-0.3.0-py3-none-any.whl", hash = "sha256:8beabc44cf368da5697cd56811a8aa698fbbc141fc34f47407f2431dbbad1590", size = 25970, upload-time = "2026-11-07T09:20:00.478Z" },
 ]
 
 [[package]]
@@ -991,12 +1041,12 @@ wheels = [
 
 [[package]]
 name = "templify-cli"
-version = "0.3.0"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "docxtpl" },
     { name = "jinja2" },
-    { name = "openpyxl" },
+    { name = "pyrecords" },
     { name = "pyspecification" },
     { name = "rich" },
     { name = "schemify-cli" },
@@ -1019,10 +1069,10 @@ dev = [
 requires-dist = [
     { name = "docxtpl", specifier = ">=0.20.2" },
     { name = "jinja2", specifier = ">=3.1" },
-    { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "pyrecords", editable = "../../python-packages/pyrecords" },
     { name = "pyspecification", specifier = ">=4.0.0" },
     { name = "rich", specifier = ">=13.0" },
-    { name = "schemify-cli", specifier = ">=0.1.0" },
+    { name = "schemify-cli", specifier = ">=0.2.0" },
     { name = "typer", specifier = ">=0.27.2" },
     { name = "typer-di", specifier = ">=0.1.5" },
     { name = "typer-swissknife", specifier = ">=0.1.0" },

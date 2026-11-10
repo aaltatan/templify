@@ -10,10 +10,10 @@ from typing import Any
 import openpyxl
 import pytest
 import questionary
+from pyrecords import rules
 from typer.testing import CliRunner
 
 from templify.cli.cli import app, main
-from templify.filter_rules import rules
 
 from .conftest import MakeFile, read_docx
 

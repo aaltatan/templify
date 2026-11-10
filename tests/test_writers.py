@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 from jinja2 import TemplateSyntaxError, UndefinedError
+from pyrecords import Data
 
-from templify.models import Data
 from templify.writers import (
     Context,
     DocxWriter,

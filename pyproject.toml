@@ -1,6 +1,6 @@
 [project]
 name = "templify-cli"
-version = "0.4.0"
+version = "0.5.0"
 description = "Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line."
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -36,7 +36,7 @@ classifiers = [
 dependencies = [
     "docxtpl>=0.20.2",
     "jinja2>=3.1",
-    "openpyxl>=3.1.5",
+    "pyrecords>=0.2.0",
     "pyspecification>=4.0.0",
     "rich>=13.0",
     "schemify-cli>=0.2.0",
@@ -57,6 +57,10 @@ templify = "templify.cli.cli:main"
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13"]
 build-backend = "uv_build"
+
+[tool.uv.sources]
+# shortcut: local path until pyrecords is on PyPI, then drop this table
+pyrecords = { path = "../../python-packages/pyrecords", editable = true }
 
 [tool.uv.build-backend]
 module-name = "templify"
@@ -111,5 +115,5 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # filter rules compare untyped column values; the decorators come from untyped libraries
-module = ["templify.filter_rules", "templify.cli.cli"]
+module = ["templify.cli.cli"]
 disable_error_code = ["no-any-return", "untyped-decorator"]
