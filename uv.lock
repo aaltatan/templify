@@ -1289,7 +1289,7 @@ requires-dist = [
     { name = "schemify-cli", specifier = ">=0.3.0" },
     { name = "typer", specifier = ">=0.29.1" },
     { name = "typer-di", specifier = ">=0.1.5" },
-    { name = "typer-swissknife", specifier = ">=0.1.1" },
+    { name = "typer-swissknife", specifier = ">=0.2.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1341,15 +1341,15 @@ wheels = [
 
 [[package]]
 name = "typer-swissknife"
-version = "0.1.1"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyfiglet" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f5/5a/ece93af593564b593b406c587374f0698d7e6e5ef62cdc96597dfed58a65/typer_swissknife-0.1.1.tar.gz", hash = "sha256:963fe8cd33f96e198e0643c75812ad56288d8aaab39100e08bd12208ad2251d6", size = 6510, upload-time = "2026-10-16T13:58:40.096Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/13/37d42bdaedb46019174184c6814153020e6b74f3691f99d0a3c12402047d/typer_swissknife-0.2.0.tar.gz", hash = "sha256:fdc1cfb739df2dcd86228a526a2383683e263fa4a76e1d03cd7c9b3cd80afd76", size = 9346, upload-time = "2026-11-22T14:36:19.743Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/67/a41a096a332b7d2f999363a509d46ec48b0978779ac3054cdd32522ac87d/typer_swissknife-0.1.1-py3-none-any.whl", hash = "sha256:244a3fa0931703e49025795315148e0abeb19cb4cea10f2633ba13e99672be6f", size = 8810, upload-time = "2026-10-16T13:58:38.756Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/3b/10d98777fe9f8a312d15df6c391a4c03aaa43379d692cbedfc30bed1ba22/typer_swissknife-0.2.0-py3-none-any.whl", hash = "sha256:b4a0499f841b0333fcc15711e1b8e605b2da304945313492a09935389be04259", size = 11505, upload-time = "2026-11-22T14:36:18.617Z" },
 ]
 
 [[package]]

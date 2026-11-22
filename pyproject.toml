@@ -42,7 +42,7 @@ dependencies = [
     "schemify-cli>=0.3.0",
     "typer>=0.29.1",
     "typer-di>=0.1.5",
-    "typer-swissknife>=0.1.1",
+    "typer-swissknife>=0.2.0",
 ]
 
 [project.urls]

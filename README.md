@@ -186,6 +186,20 @@ The mode decides what the template sees and how many files are written:
 An option used in a mode that doesn't take it is an error, never silently ignored:
 `--name-by only works with --each`.
 
+Any other `--key value` (or `--key=value`) becomes a template variable, in every mode.
+Dashes turn into underscores (`--due-date` → `{{ due_date }}`), and values are strings:
+
+```bash
+templify render -t report.docx -d people.xlsx --title "Q3 report" --company Tawazon
+```
+
+```jinja
+{{ title }} by {{ company }}
+```
+
+With `--each`, a data column with the same name wins over the option.
+So do `objects` / `object` (or your `--var`) and the [built-in variables](#built-in-variables).
+
 #### All rows in one file (default)
 
 `team.md`:

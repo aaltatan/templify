@@ -226,6 +226,46 @@ class TestSingleTemplate:
 
 
 # -----------------------
+# extra variables
+# -----------------------
+
+
+class TestExtraVariables:
+    def test_single_file(self, make_text_file: MakeFile, xlsx_file: Path, output_dir: Path) -> None:
+        template = make_text_file("r.txt", "{{ title }} by {{ company }}: {{ objects | length }}")
+        code, output = invoke(
+            "render", "--title", "Q3 report", "-t", template, "-d", xlsx_file, "-o", output_dir,
+            "--company=Tawazon",
+        )  # fmt: skip
+
+        assert code == 0, output
+        assert (output_dir / "r.txt").read_text() == "Q3 report by Tawazon: 3"
+
+    def test_each_row_columns_win(
+        self, make_text_file: MakeFile, xlsx_file: Path, output_dir: Path
+    ) -> None:
+        template = make_text_file("t.txt", "{{ greeting }} {{ name }}")
+        code, output = invoke(
+            "render", "--each", "-t", template, "-d", xlsx_file, "-o", output_dir,
+            "-n", "name", "--greeting", "Hi", "--name", "ignored",
+        )  # fmt: skip
+
+        assert code == 0, output
+        assert (output_dir / "Rama.txt").read_text() == "Hi Rama"
+
+    def test_clash_with_declared_option(
+        self, make_text_file: MakeFile, xlsx_file: Path, output_dir: Path
+    ) -> None:
+        template = make_text_file("t.txt", "x")
+        code, output = invoke(
+            "render", "-t", template, "-d", xlsx_file, "-o", output_dir, "--name_by", "name"
+        )
+
+        assert code != 0
+        assert "clashes with a declared parameter" in output
+
+
+# -----------------------
 # errors
 # -----------------------
 

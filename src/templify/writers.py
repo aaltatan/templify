@@ -2,7 +2,7 @@
 
 import json
 import re
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from pathlib import Path
 from typing import Any, Protocol
 from uuid import uuid4
@@ -223,6 +223,7 @@ def write_single(  # noqa: PLR0913
     output_dir: Path,
     filename: str,
     extension: str,
+    variables: Mapping[str, Any] | None = None,
 ) -> Path:
     """Render `value` (all the records, or a single one) into one file.
 
@@ -233,13 +234,16 @@ def write_single(  # noqa: PLR0913
         output_dir: Where to save the file, created if missing.
         filename: The file name without extension.
         extension: The file extension, without the dot.
+        variables: Extra template variables, `var_name` and the built-ins win over them.
 
     Returns:
         The saved file path. A random suffix is added if the file already exists.
 
     """
     filepath = _generate_filepath(filename, output_dir, extension)
-    writer.write({var_name: value, **ADDITIONAL_CONTEXT}, filepath)
+
+    writer.write({**(variables or {}), var_name: value, **ADDITIONAL_CONTEXT}, filepath)
+
     return filepath
 
 
@@ -251,6 +255,7 @@ def write_multiple(  # noqa: PLR0913
     extension: str,
     filename_key: str | None = None,
     include_index: bool = False,
+    variables: Mapping[str, Any] | None = None,
 ) -> Iterator[Path]:
     """Render one file per record, yielding each saved file path.
 
@@ -263,6 +268,7 @@ def write_multiple(  # noqa: PLR0913
         extension: The files extension, without the dot.
         filename_key: The column naming each file, `template-<n>` when missing or empty.
         include_index: Prefix each filename with the record number: `1 - Rama`.
+        variables: Extra template variables, the record's columns and the built-ins win over them.
 
     Yields:
         Each saved file path. A random suffix is added if the file already exists.
@@ -271,7 +277,8 @@ def write_multiple(  # noqa: PLR0913
     for idx, item in enumerate(data, start=1):
         filename = _get_filename(item, idx, filename_key, include_index=include_index)
         filepath = _generate_filepath(filename, output_dir, extension)
-        writer.write({**item, **ADDITIONAL_CONTEXT}, filepath)
+        writer.write({**(variables or {}), **item, **ADDITIONAL_CONTEXT}, filepath)
+
         yield filepath
 
 

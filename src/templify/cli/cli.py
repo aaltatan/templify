@@ -68,8 +68,12 @@ def render(  # noqa: PLR0913, PLR0917
             rich_help_panel="Output (--each)",
         ),
     ] = False,
+    **variables: str,
 ) -> None:
-    """Render the template with the data, into one file or one file per row."""
+    """Render the template with the data, into one file or one file per row.
+
+    Undeclared options such as `--title "Q3 report"` become template variables.
+    """
     _check_mode_options(mode, filename=filename, var=var, name_by=name_by, numbered=numbered)
 
     try:
@@ -83,6 +87,7 @@ def render(  # noqa: PLR0913, PLR0917
                 extension=template.extension,
                 filename_key=name_by,
                 include_index=numbered,
+                variables=variables,
             )
 
             for _ in track(files, description="Generating", total=len(data), console=console):
@@ -99,6 +104,7 @@ def render(  # noqa: PLR0913, PLR0917
             output_dir=output_dir,
             filename=filename or template.path.stem,
             extension=template.extension,
+            variables=variables,
         )
 
     except (TemplateError, InvalidOutputError) as e:

@@ -29,4 +29,10 @@ RENDER_HELP_TEXT = (
     "Hello {{ object.name }}\n"
     "\n"
     "templify render -t letter.docx -d rama.json --object\n"
+    "\n"
+    "Any other option becomes a template variable, in every mode:\n"
+    "\n"
+    "{{ title }} by {{ company }}\n"
+    "\n"
+    'templify render -t report.docx -d people.xlsx --title "Q3 report" --company Tawazon\n'
 )
