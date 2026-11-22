@@ -1,11 +1,7 @@
 """The templify command line application."""
 
 import json
-import sqlite3
-from collections.abc import Iterator
-from contextlib import contextmanager
 from typing import Annotated, Any, NoReturn
-from zipfile import BadZipFile
 
 import typer
 from jinja2 import TemplateError
@@ -22,9 +18,8 @@ from typer_swissknife import add_typer, command
 
 from templify.cli.dependencies.console import ConsoleDI
 from templify.cli.dependencies.data import DataDI, FilterSchemaDI, Mode, ModeDI, filter_errors
-from templify.cli.dependencies.store import SchemaStoreDI
+from templify.cli.dependencies.store import SchemaStoreDI, store_errors
 from templify.cli.dependencies.template import OutputDirDI, TemplateDI
-from templify.stores import RecordNotFoundError, StoreError
 from templify.writers import InvalidOutputError, write_multiple, write_single
 
 from .help import RENDER_HELP_TEXT
@@ -157,7 +152,7 @@ def filters(console: ConsoleDI) -> None:
 @command(store_app, name="init", no_args_is_help=True)
 def store_init(console: ConsoleDI, target: SchemaStoreDI) -> None:
     """Create the store file and its table or sheet, does nothing if they exist."""
-    with _store_errors():
+    with store_errors():
         target.store.init()
 
     console.print("[green]Store ready[/]")
@@ -168,7 +163,7 @@ def store_add(console: ConsoleDI, target: SchemaStoreDI) -> None:
     """Ask for records matching the schema and add them to the store."""
     records = ask_or_abort(target.schema, ask_list)
 
-    with _store_errors(records):
+    with store_errors(records):
         ids = target.store.add(records)
 
     console.print(f"[green]Added records:[/] {', '.join(map(str, ids))}")
@@ -177,7 +172,7 @@ def store_add(console: ConsoleDI, target: SchemaStoreDI) -> None:
 @command(store_app, name="list", aliases=("ls",), no_args_is_help=True)
 def store_list(console: ConsoleDI, target: SchemaStoreDI) -> None:
     """List every record in the store."""
-    with _store_errors():
+    with store_errors():
         records = target.store.all()
 
     _print_records(console, records)
@@ -186,7 +181,7 @@ def store_list(console: ConsoleDI, target: SchemaStoreDI) -> None:
 @command(store_app, name="get", no_args_is_help=True)
 def store_get(console: ConsoleDI, target: SchemaStoreDI, id_: IdArgument) -> None:
     """Show one record."""
-    with _store_errors():
+    with store_errors():
         record = target.store.get(id_)
 
     _print_records(console, [record])
@@ -199,7 +194,7 @@ def store_search(console: ConsoleDI, target: SchemaStoreDI, filter_schema: Filte
         msg = "--filter is required"
         raise typer.BadParameter(msg)
 
-    with _store_errors():
+    with store_errors():
         records = target.store.all()
 
     with filter_errors():
@@ -211,12 +206,12 @@ def store_search(console: ConsoleDI, target: SchemaStoreDI, filter_schema: Filte
 @command(store_app, name="update", no_args_is_help=True)
 def store_update(console: ConsoleDI, target: SchemaStoreDI, id_: IdArgument) -> None:
     """Ask for the whole record again and replace it."""
-    with _store_errors():
+    with store_errors():
         target.store.get(id_)  # fail before asking
 
     record = ask_or_abort(target.schema, ask_data)
 
-    with _store_errors([record]):
+    with store_errors([record]):
         target.store.update(id_, record)
 
     console.print(f"[green]Updated record:[/] {id_}")
@@ -232,33 +227,16 @@ def store_delete(
     ] = False,
 ) -> None:
     """Delete one record."""
-    with _store_errors():
+    with store_errors():
         target.store.get(id_)
 
     if not yes:
         typer.confirm(f"Delete record {id_}?", abort=True)
 
-    with _store_errors():
+    with store_errors():
         target.store.delete(id_)
 
     console.print(f"[green]Deleted record:[/] {id_}")
-
-
-@contextmanager
-def _store_errors(unsaved: Data | None = None) -> Iterator[None]:
-    """Report store failures, with the `unsaved` answers as JSON so they can be recovered."""
-    try:
-        yield
-    except RecordNotFoundError as e:
-        raise typer.BadParameter(str(e)) from e
-    except (StoreError, sqlite3.Error, OSError, ValueError, BadZipFile) as e:
-        message = f"Store Error: {e}"
-
-        if unsaved:
-            answers = json.dumps(unsaved, ensure_ascii=False, indent=2, default=str)
-            message += f"\nThe answers were not saved:\n{answers}"
-
-        _fail(message)
 
 
 def _print_records(console: Console, records: Data) -> None:

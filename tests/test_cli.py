@@ -953,3 +953,92 @@ class TestStoreCommands:
 
         assert code == 2
         assert "not supported" in output
+
+
+class TestRenderStore:
+    def test_saves_answers_then_renders(
+        self, answer: Callable[..., None], person_schema: Path, make_text_file: MakeFile,
+        tmp_path: Path, output_dir: Path,
+    ) -> None:  # fmt: skip
+        answer("Rama", True, "Rawaa", False)  # noqa: FBT003
+        store = tmp_path / "people.jsonl"
+        template = make_text_file("t.txt", "{{ id }}:{{ name }}")
+        code, output = invoke(
+            "render", "--each", "-s", person_schema, "--store", store, "-t", template,
+            "-o", output_dir, "-n", "name",
+        )  # fmt: skip
+
+        assert code == 0, output
+        assert (output_dir / "Rawaa.txt").read_text() == "2:Rawaa"
+        assert len(store.read_text().splitlines()) == 2
+
+    def test_template_error_keeps_answers(
+        self, answer: Callable[..., None], person_schema: Path, make_text_file: MakeFile,
+        tmp_path: Path, output_dir: Path,
+    ) -> None:  # fmt: skip
+        answer("Rama")
+        store = tmp_path / "people.json"
+        template = make_text_file("t.txt", "{{ object.name.missing() }}")
+        code, _ = invoke(
+            "render", "--object", "-s", person_schema, "--store", store, "-t", template,
+            "-o", output_dir,
+        )  # fmt: skip
+
+        assert code == 1
+        assert json.loads(store.read_text())[0]["name"] == "Rama"
+
+    def test_regenerates_by_id_without_asking(
+        self, answer: Callable[..., None], person_schema: Path, make_text_file: MakeFile,
+        tmp_path: Path, output_dir: Path,
+    ) -> None:  # fmt: skip
+        store = tmp_path / "people.sqlite"
+        answer("Rama", True, "Rawaa", True, "Abdullah", False)  # noqa: FBT003
+        invoke("store", "add", "-s", person_schema, store)
+        answer()  # any question would fail on the empty queue
+        template = make_text_file("t.txt", "{% for p in objects %}{{ p.name }};{% endfor %}")
+        code, output = invoke(
+            "render", "-s", person_schema, "--store", store, "--id", "3", "--id", "1",
+            "-t", template, "-o", output_dir,
+        )  # fmt: skip
+
+        assert code == 0, output
+        assert (output_dir / "t.txt").read_text() == "Abdullah;Rama;"
+
+        template = make_text_file("o.txt", "{{ object.id }} {{ object.name }}")
+        code, output = invoke(
+            "render", "--object", "-s", person_schema, "--store", store, "--id", "2",
+            "-t", template, "-o", output_dir,
+        )  # fmt: skip
+
+        assert code == 0, output
+        assert (output_dir / "o.txt").read_text() == "2 Rawaa"
+
+        code, output = invoke(
+            "render", "-s", person_schema, "--store", store, "--id", "9", "-t", template,
+            "-o", output_dir,
+        )  # fmt: skip
+
+        assert code == 2
+        assert "No record with id 9" in output
+
+    @pytest.mark.parametrize(
+        ("extra", "message"),
+        [
+            (["--object", "-s", "{schema}", "--store", "{store}", "--id", "1", "--id", "2"],
+             "exactly one --id"),
+            (["-d", "{schema}", "--store", "{store}"], "--store only works with -s"),
+            (["-s", "{schema}", "--id", "1"], "--id needs --store"),
+            (["-s", "{schema}", "--store", "{tmp}/people.csv"], "not supported"),
+        ],
+    )  # fmt: skip
+    def test_bad_combinations(
+        self, extra: list[str], message: str, person_schema: Path, make_text_file: MakeFile,
+        tmp_path: Path,
+    ) -> None:  # fmt: skip
+        template = make_text_file("t.txt", "x")
+        values = {"schema": person_schema, "store": tmp_path / "p.json", "tmp": tmp_path}
+        args = [arg.format(**values) for arg in extra]
+        code, output = invoke("render", "-t", template, "-o", tmp_path / "out", *args)
+
+        assert code == 2
+        assert message in output

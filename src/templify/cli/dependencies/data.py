@@ -34,6 +34,9 @@ from schemify import Schema, ask_data, ask_list
 from schemify.cli.dependencies.schema import ask_or_abort, load_schema
 from typer_di import Depends
 
+from templify.cli.dependencies.store import open_store, store_errors
+from templify.stores import get_many
+
 type Mode = Literal["single", "each", "object"]
 """How `render` writes: all rows in one file, one file per row, or one object in one file."""
 
@@ -130,11 +133,69 @@ def _read_source[T](
         raise typer.BadParameter(msg) from e
 
 
+StorePathOption = Annotated[
+    Path | None,
+    typer.Option(
+        "--store",
+        help="Save the answers to -s / --schema in this store file, or read --id from it",
+        dir_okay=False,
+        resolve_path=True,
+        rich_help_panel="Store",
+    ),
+]
+
+IdsOption = Annotated[
+    list[int],
+    typer.Option(
+        "--id",
+        help="Render these --store records instead of asking (repeatable)",
+        default_factory=list,
+        show_default=False,
+        rich_help_panel="Store",
+    ),
+]
+
+
+def _read_store(mode: Mode, schema_path: Path, store_path: Path, ids: list[int]) -> Data | DataItem:
+    """Load the records `ids` from the store, or ask for new ones and save them first."""
+    if mode == "object" and len(ids) > 1:
+        msg = "--object takes exactly one --id"
+        raise typer.BadParameter(msg)
+
+    schema = load_schema(schema_path)
+    store = open_store(schema, schema_path, store_path)  # bad extension fails before asking
+
+    if not ids:
+        answers = ask_or_abort(schema, ask_data if mode == "object" else ask_list)
+        records = [answers] if isinstance(answers, dict) else answers
+
+        with store_errors(records):  # saved before rendering, a template error loses nothing
+            ids = store.add(records)
+
+    with store_errors():
+        records = get_many(store, ids)  # with id, timestamps and decoded values
+
+    return records[0] if mode == "object" else records
+
+
 def _read(
     mode: Annotated[Mode, Depends(_get_mode)],
+    ids: IdsOption,
     file: DataFileOption = None,
     schema_path: SchemaFileOption = None,
+    store_path: StorePathOption = None,
 ) -> Data | DataItem:
+    if store_path is not None:
+        if schema_path is None or file is not None:
+            msg = "--store only works with -s / --schema"
+            raise typer.BadParameter(msg)
+
+        return _read_store(mode, schema_path, store_path, ids)
+
+    if ids:
+        msg = "--id needs --store"
+        raise typer.BadParameter(msg)
+
     if mode == "object":
         return _read_source(object_readers, ask_data, file, schema_path)
 
