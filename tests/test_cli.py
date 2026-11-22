@@ -1042,3 +1042,54 @@ class TestRenderStore:
 
         assert code == 2
         assert message in output
+
+
+class TestStoreMaintenance:
+    def test_import_all_or_nothing(self, person_schema: Path, tmp_path: Path) -> None:
+        store = tmp_path / "people.json"
+        bad = tmp_path / "bad.json"
+        bad.write_text(json.dumps([{"name": "Rama"}, {"name": 5}, {"age": 3}]))
+        code, output = invoke("store", "import", "-s", person_schema, store, "-d", bad)
+
+        assert code == 2
+        assert "Row 2" in output
+        assert "Row 3" in output
+        assert not store.exists()
+
+    def test_import_xlsx_keeps_schema_columns(
+        self, person_schema: Path, xlsx_file: Path, tmp_path: Path
+    ) -> None:
+        store = tmp_path / "people.jsonl"
+        code, output = invoke("store", "import", "-s", person_schema, store, "-d", xlsx_file)
+
+        assert code == 0, output
+        assert "Imported 3 records" in output
+        assert "age" not in store.read_text()
+
+    def test_export_and_migrate(
+        self, answer: Callable[..., None], person_schema: Path, tmp_path: Path
+    ) -> None:
+        answer("Rama", False)  # noqa: FBT003
+        db = tmp_path / "people.db"
+        invoke("store", "add", "-s", person_schema, db)
+        code, output = invoke("store", "export", "-s", person_schema, db, tmp_path / "p.xlsx")
+
+        assert code == 0, output
+        assert "Exported 1 records" in output
+
+        code, output = invoke("store", "export", "-s", person_schema, db, tmp_path / "p.xlsx")
+
+        assert code == 2
+        assert "already exists" in output
+
+        schema = json.loads(person_schema.read_text())
+        schema["properties"]["age"] = {"type": "integer"}
+        person_schema.write_text(json.dumps(schema))
+        code, output = invoke("store", "migrate", "-s", person_schema, tmp_path / "p.xlsx")
+
+        assert code == 0, output
+        assert "Added columns: age" in output
+
+        code, output = invoke("store", "migrate", "-s", person_schema, tmp_path / "p.xlsx")
+
+        assert "Nothing to migrate" in output

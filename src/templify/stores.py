@@ -183,6 +183,13 @@ class Store(Protocol):
         """Delete the record with `id_`, raises `RecordNotFoundError`."""
         ...
 
+    def migrate(self) -> list[str]:
+        """Add the schema columns the store is missing and return their names.
+
+        Removed or retyped properties are left alone, no data is lost.
+        """
+        ...
+
 
 type StoreFactory = Callable[[Path, str, list[Column]], Store]
 """Builds a store from its file path, table name and columns, usually the store class itself."""
@@ -408,6 +415,23 @@ class SqliteStore:
         if cursor.rowcount == 0:
             raise RecordNotFoundError(id_)
 
+    def migrate(self) -> list[str]:
+        """Add the missing schema columns with `ALTER TABLE ADD COLUMN`."""
+        _require(self.path)
+        self.init()  # the table may be missing
+
+        with self._connect() as conn:
+            existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({self.table})")}
+            missing = [c for c in self.columns if c.name not in existing]
+
+            for column in missing:
+                conn.execute(
+                    f"ALTER TABLE {self.table} ADD COLUMN {_quote(column.name)} "
+                    f"{self._SQL_TYPES.get(column.type or '', 'TEXT')}"
+                )
+
+        return [c.name for c in missing]
+
 
 class _FileStore:
     """CRUD over a list of raw rows, the subclasses only read and save the whole file."""
@@ -507,6 +531,12 @@ class _FileStore:
 
         self._save(rows)
 
+    def migrate(self) -> list[str]:
+        """Nothing to add: a record missing a key already reads it as `None`."""
+        _require(self.path)
+
+        return []
+
 
 def _write_atomic(path: Path, text: str) -> None:
     """Write through a temp file, so a failure never leaves a half-written store."""
@@ -586,3 +616,17 @@ class XlsxStore(_FileStore):
             sheet.append([row.get(name) for name in header])
 
         wb.save(self.path)
+
+    def migrate(self) -> list[str]:
+        """Append the missing schema columns to the header row."""
+        _require(self.path)
+        self.init()  # the sheet may be missing
+
+        sheet = openpyxl.load_workbook(self.path)[self.sheet_name]
+        existing = next(sheet.iter_rows(max_row=1, values_only=True), ())
+        missing = [name for name in self.header if name not in existing]
+
+        if missing:
+            self._save(self._rows())  # rewriting the sheet appends the new header cells
+
+        return missing

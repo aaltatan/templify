@@ -124,6 +124,11 @@ def _read_source[T](
 
     assert file is not None  # checked above
 
+    return read_data_file(registry, file)
+
+
+def read_data_file[T](registry: ReaderRegistry[T], file: Path) -> T:
+    """Read `file` with the reader matching its extension, a bad file is a usage error."""
     try:
         return registry[file.suffix.lstrip(".")](file)
     except ExtensionNotSupportedError as e:

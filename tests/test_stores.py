@@ -162,3 +162,41 @@ def test_json_store_is_readable_as_data(tmp_path: Path) -> None:
     store.add([RAMA])
 
     assert readers["json"](tmp_path / "people.json")[0]["address"] == {"city": "Homs"}
+
+
+@pytest.mark.parametrize("extension", EXTENSIONS)
+def test_migrate_adds_new_property_and_keeps_rows(tmp_path: Path, extension: str) -> None:
+    old = {"title": "people", "properties": {"name": {"type": "string"}, "gone": {}}}
+    make_store(tmp_path, extension, old).add([{"name": "Rama", "gone": "kept"}])
+
+    new = {
+        "title": "people",
+        "properties": {"name": {"type": "string"}, "age": {"type": "integer"}},
+    }
+    store = make_store(tmp_path, extension, new)
+    added = store.migrate()
+
+    assert added == ([] if extension.startswith("json") else ["age"])
+    assert store.migrate() == []
+
+    store.add([{"name": "Rawaa", "age": 33}])
+
+    assert [(r["name"], r["age"]) for r in store.all()] == [("Rama", None), ("Rawaa", 33)]
+    assert make_store(tmp_path, extension, old).get(1)["gone"] == "kept"  # no data loss
+
+
+def test_export_keeps_ids_values_and_timestamps(tmp_path: Path) -> None:
+    source = make_store(tmp_path, "sqlite")
+    source.add([RAMA, {"name": "Rawaa"}, {"name": "Abdullah"}])
+    source.delete(2)
+    expected = source.all()
+
+    for extension in ("xlsx", "json"):
+        copy = make_store(tmp_path, extension)
+        copy.add(source.all(), keep_meta=True)
+
+        assert copy.all() == expected
+
+        source = copy
+
+    assert source.add([{"name": "New"}]) == [4]

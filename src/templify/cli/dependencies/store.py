@@ -31,7 +31,12 @@ class SchemaStore:
     """A store and the schema giving its table name and columns."""
 
     schema: Schema
+    schema_path: Path
     store: Store
+
+    def open(self, path: Path) -> Store:
+        """Build another store at `path` for the same schema."""
+        return open_store(self.schema, self.schema_path, path)
 
 
 def open_store(schema: Schema, schema_path: Path, path: Path) -> Store:
@@ -98,7 +103,7 @@ def _get_schema_store(
 ) -> SchemaStore:
     schema = load_schema(schema_path)
 
-    return SchemaStore(schema, open_store(schema, schema_path, path))
+    return SchemaStore(schema, schema_path, open_store(schema, schema_path, path))
 
 
 SchemaStoreDI = Annotated[SchemaStore, Depends(_get_schema_store)]

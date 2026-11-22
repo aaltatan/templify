@@ -1,23 +1,32 @@
 """The templify command line application."""
 
 import json
+from datetime import date, datetime
+from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import typer
 from jinja2 import TemplateError
-from pyrecords import Data, filter_data, get_compiler, rules
+from pyrecords import Data, filter_data, get_compiler, readers, rules
 from pyspecification import get_expression_json_schema
 from rich.console import Console
 from rich.markup import escape
 from rich.progress import track
 from rich.table import Table
-from schemify import ask_data, ask_list
+from schemify import ask_data, ask_list, check_value
 from schemify.cli.dependencies.schema import ask_or_abort
 from typer_di import TyperDI
 from typer_swissknife import add_typer, command
 
 from templify.cli.dependencies.console import ConsoleDI
-from templify.cli.dependencies.data import DataDI, FilterSchemaDI, Mode, ModeDI, filter_errors
+from templify.cli.dependencies.data import (
+    DataDI,
+    FilterSchemaDI,
+    Mode,
+    ModeDI,
+    filter_errors,
+    read_data_file,
+)
 from templify.cli.dependencies.store import SchemaStoreDI, store_errors
 from templify.cli.dependencies.template import OutputDirDI, TemplateDI
 from templify.writers import InvalidOutputError, write_multiple, write_single
@@ -237,6 +246,100 @@ def store_delete(
         target.store.delete(id_)
 
     console.print(f"[green]Deleted record:[/] {id_}")
+
+
+@command(store_app, name="migrate", no_args_is_help=True)
+def store_migrate(console: ConsoleDI, target: SchemaStoreDI) -> None:
+    """Add the schema properties the store is missing as new columns, keeping every row."""
+    with store_errors():
+        added = target.store.migrate()
+
+    if added:
+        console.print(f"[green]Added columns:[/] {', '.join(added)}")
+    else:
+        console.print("[green]Nothing to migrate[/]")
+
+
+@command(store_app, name="import", no_args_is_help=True)
+def store_import(
+    console: ConsoleDI,
+    target: SchemaStoreDI,
+    file: Annotated[
+        Path,
+        typer.Option(
+            "-d",
+            "--data",
+            help="Data file to import, every row must match the schema",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+        ),
+    ],
+) -> None:
+    """Add every row of a data file, or none if one row does not match the schema."""
+    properties = target.schema.get("properties") or {}
+    records = [
+        {
+            key: _json_value(value, properties[key])
+            for key, value in row.items()
+            if key in properties and value is not None  # an empty cell is a missing value
+        }
+        for row in read_data_file(readers, file)
+    ]
+    errors = [
+        f"Row {idx}: {error}"
+        for idx, record in enumerate(records, start=1)
+        if (error := check_value(target.schema, record)) is not None
+    ]
+
+    if errors:
+        msg = "Nothing imported, rows not matching the schema:\n" + "\n".join(errors)
+        raise typer.BadParameter(msg)
+
+    with store_errors():
+        ids = target.store.add(records)
+
+    console.print(f"[green]Imported {len(ids)} records[/]")
+
+
+@command(store_app, name="export", no_args_is_help=True)
+def store_export(
+    console: ConsoleDI,
+    target: SchemaStoreDI,
+    destination: Annotated[
+        Path,
+        typer.Argument(
+            metavar="TARGET",
+            help="New store file to copy every record into, ids and timestamps included",
+            dir_okay=False,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ],
+) -> None:
+    """Copy every record into a new store, of any supported extension."""
+    if destination.exists():
+        msg = f"'{destination.name}' already exists, export only creates new stores"
+        raise typer.BadParameter(msg)
+
+    copy = target.open(destination)
+
+    with store_errors():
+        ids = copy.add(target.store.all(), keep_meta=True)
+
+    console.print(f"[green]Exported {len(ids)} records to:[/] {destination}")
+
+
+def _json_value(value: Any, schema: dict[str, Any]) -> Any:
+    """Turn a date read from Excel into the ISO text the schema validates."""
+    if isinstance(value, datetime) and schema.get("format") == "date":
+        return value.date().isoformat()
+
+    if isinstance(value, date):  # datetime too
+        return value.isoformat()
+
+    return value
 
 
 def _print_records(console: Console, records: Data) -> None:
