@@ -29,6 +29,7 @@ offers/
   - [`filters` (`f`)](#filters-f)
   - [`types` (`t`)](#types-t)
   - [`store` (`s`)](#store-s)
+  - [Upgrading from 0.6](#upgrading-from-06)
   - [Upgrading from 0.2](#upgrading-from-02)
 - [Data sources](#data-sources)
 - [Templates](#templates)
@@ -321,6 +322,18 @@ templify types -n str -k test
 ### `store` (`s`)
 
 Manage the records kept in a store file: `init`, `add`, `list`, `get`, `search`, `update`, `delete`, `migrate`, `import` and `export`. See [Storing records](#storing-records).
+
+### Upgrading from 0.6
+
+0.7 renders every template in Jinja's immutable sandbox, with the
+[jinja-types](#type-filters-jinja-types) filters added:
+
+| 0.6                                                   | 0.7                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------ |
+| `{{ items.append(x) }}` changes `items`               | Fails: `access to attribute 'append' of 'list' object is unsafe` |
+| -                                                     | Build a new list instead: `{% set more = items + [x] %}` or `{{ items \| list.append(x) }}` |
+| Unknown filter: `No filter named 'str.zfil'.`         | Adds `Did you mean: str.zfill?`                              |
+| -                                                     | New `templify types` (`t`) command                           |
 
 ### Upgrading from 0.2
 
