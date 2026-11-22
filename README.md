@@ -27,6 +27,7 @@ offers/
 - [Commands](#commands)
   - [`render` (`r`)](#render-r)
   - [`filters` (`f`)](#filters-f)
+  - [`store` (`s`)](#store-s)
   - [Upgrading from 0.2](#upgrading-from-02)
 - [Data sources](#data-sources)
 - [Templates](#templates)
@@ -42,6 +43,9 @@ offers/
   - [Filter schema](#filter-schema)
   - [Filter rules reference](#filter-rules-reference)
 - [Grouping](#grouping)
+- [Storing records](#storing-records)
+  - [Saving while rendering](#saving-while-rendering)
+  - [`store` (`s`) commands](#store-s-commands)
 - [Cookbook](#cookbook)
 - [Errors](#errors)
 - [Extending templify](#extending-templify)
@@ -57,6 +61,7 @@ offers/
 - **Ordering** by any number of columns, ascending or descending.
 - **Filtering** with a JSON filter language: 50+ rules for strings, numbers, decimals, dates, datetimes and UUIDs. Rules combine with `all` / `any`, nest, and can be inverted.
 - **Grouping** by one or more columns, e.g. one file per department listing its employees.
+- **Record stores**: keep the answers asked from a schema in sqlite, Excel, JSON or JSON Lines, then list, search, update, migrate, import, export and re-render them by id.
 - **Safe output**: existing files are never overwritten, invalid filename characters are replaced, and missing folders are created.
 - **Validated JSON output**: a JSON template that renders invalid JSON is rejected before anything is saved.
 - **Clear errors** for bad templates, bad data, unknown columns and bad filters, instead of Python tracebacks.
@@ -151,6 +156,7 @@ templify --help
 | --------- | ----- | --------------------------------------------------- |
 | `render`  | `r`   | Render a template with data, in one of three modes  |
 | `filters` | `f`   | List the filter rules and their arguments           |
+| `store`   | `s`   | Keep records in a store file, see [Storing records](#storing-records) |
 
 ### `render` (`r`)
 
@@ -291,6 +297,10 @@ templify filters
 ```
 
 The argument names are also the `kwargs` names: `{"key": "salary", "value": 1400}`.
+
+### `store` (`s`)
+
+Manage the records kept in a store file: `init`, `add`, `list`, `get`, `search`, `update`, `delete`, `migrate`, `import` and `export`. See [Storing records](#storing-records).
 
 ### Upgrading from 0.2
 
@@ -802,6 +812,73 @@ Useful group-level expressions:
 | `--items-var` equals a group-by column                   | `Items key 'city' can not be one of the group by keys` |
 | The column holds lists or objects (JSON)                 | `Can not group by unhashable values ...`            |
 
+## Storing records
+
+`render -s` asks for records and forgets them once the files are written. A **store** keeps them in a file, so you can list, search, fix and re-render them later. The store is picked from the file extension:
+
+| Extension                    | Store                                                   |
+| ---------------------------- | ------------------------------------------------------- |
+| `.sqlite`, `.db`, `.sqlite3` | one sqlite table                                        |
+| `.xlsx`                      | one sheet, row 1 is the header                          |
+| `.json`                      | a JSON list of records, readable again with `render -d` |
+| `.jsonl`                     | one JSON record per line                                |
+
+The schema decides the shape:
+
+- The table (or sheet) is named after the schema `title`, or the schema file name without `.json`.
+- Every top-level property is a column, in schema order. Nested objects and arrays are JSON text in sqlite and xlsx, and plain JSON in `.json` / `.jsonl`.
+- Every record also gets an `id` (first column, assigned by the store, never reused while a higher id exists), `created_at` and `updated_at` (UTC). A schema can not declare these three properties.
+- Values read back keep their types: `date` / `date-time` properties become dates (so `{{ hired.strftime("%d/%m/%Y") }}` works), objects and arrays become dicts and lists, booleans stay booleans. sqlite stores `integer` and `boolean` as `INTEGER`, `number` as `REAL`, everything else as `TEXT`.
+
+### Saving while rendering
+
+Add `--store` to any `render -s` command. The answers are saved **before** rendering, so a template error never loses them, and templates can use `{{ id }}`:
+
+```bash
+templify render --each -s person.json --store people.sqlite -t letter.docx -n name
+```
+
+Re-render stored records with `--id` (repeatable), nothing is asked. `--order`, `--filter` and `--group-by` still apply, and `--object` takes exactly one `--id`:
+
+```bash
+templify render --object -s person.json --store people.sqlite --id 3 -t letter.docx
+```
+
+```bash
+templify render -s person.json --store people.sqlite --id 1 --id 4 -t team.md
+```
+
+### `store` (`s`) commands
+
+Every command takes the schema (`-s`) and the store `PATH`:
+
+| Command                                | What it does                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| `store init -s S PATH`                 | Create the file and its table or sheet (does nothing if they exist)       |
+| `store add -s S PATH`                  | Ask for records and add them, prints the new ids                          |
+| `store list -s S PATH` (`ls`)          | Show every record                                                         |
+| `store get -s S PATH ID`               | Show one record                                                           |
+| `store search -s S PATH --filter JSON` | Show the records matching a [filter](#filtering)                          |
+| `store update -s S PATH ID`            | Ask for the whole record again and replace it                             |
+| `store delete -s S PATH ID` (`rm`)     | Delete a record, after a confirmation (`-y` / `--yes` to skip it)         |
+| `store migrate -s S PATH`              | Add new schema properties as columns, keeping every row                   |
+| `store import -s S PATH -d FILE`       | Add every row of an `.xlsx` / `.json` file, or none if one row is invalid |
+| `store export -s S PATH TARGET`        | Copy every record, ids and timestamps included, into a new store          |
+
+```bash
+templify store add -s person.json people.xlsx
+```
+
+```bash
+templify store search -s person.json people.xlsx --filter '{"name": "string__eq", "args": ["city", "Homs"], "kwargs": {}, "inverse": false}'
+```
+
+```bash
+templify store export -s person.json people.xlsx people.json
+```
+
+`migrate` never drops or retypes a column: removed properties keep their data. `import` keeps only the schema's columns and treats empty cells as missing values. If saving fails (say, the workbook is open in Excel), the error message prints the answers as JSON so nothing is lost.
+
 ## Cookbook
 
 **Offer letters in Word, one per employee, numbered:**
@@ -934,6 +1011,20 @@ class PptxWriter:
 
 A format that needs validation can extend `TextWriter` and override `render`, the way `JsonWriter` does.
 
+### A new store
+
+`src/templify/stores.py`: a class built from `(path, table, columns)` that implements the `Store` protocol (`init`, `add`, `all`, `get`, `update`, `delete`, `migrate`), registered on `stores`. `columns` are `Column(name, type, format)` from the schema's top-level properties. File-based stores can extend `_FileStore` and only read and save the rows, the way `JsonStore` does:
+
+```python
+@stores.store("csv")
+class CsvStore(_FileStore):
+    native_json = False  # nested values as JSON text
+
+    def _rows(self) -> list[dict[str, Any]]: ...  # read every row
+
+    def _save(self, rows: list[dict[str, Any]]) -> None: ...  # write every row
+```
+
 ### A new filter rule
 
 `pyrecords/filter_rules.py`: the first two parameters are the row and the column. A `Process` marker on a parameter converts the value coming from the filter JSON.
@@ -983,15 +1074,18 @@ vhs docs/demo/each.tape && vhs docs/demo/schema.tape && vhs docs/demo/schema-lis
 src/templify/
 ├── writers.py           # Writer protocol, WriterRegistry, Docx/Text/Json writers,
 │                        #   write_single / write_multiple, file naming
+├── stores.py            # Store protocol, StoreRegistry, sqlite/xlsx/json/jsonl stores
 └── cli/
-    ├── main.py          # the commands
+    ├── cli.py           # the commands
     ├── help.py          # long --help texts
     └── dependencies/
         ├── data.py      # -d, --order, --filter, --group-by pipeline
+        ├── store.py     # -s + store PATH, store error reporting
         ├── template.py  # -t (picks the writer) and -o
         └── console.py   # rich console
 tests/
 ├── test_writers.py
+├── test_stores.py
 └── test_cli.py          # end-to-end user scenarios
 ```
 

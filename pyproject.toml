@@ -1,6 +1,6 @@
 [project]
 name = "templify-cli"
-version = "0.5.1"
+version = "0.6.0"
 description = "Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line."
 readme = "README.md"
 license = "GPL-3.0-or-later"
