@@ -1260,6 +1260,7 @@ source = { editable = "." }
 dependencies = [
     { name = "docxtpl" },
     { name = "jinja2" },
+    { name = "openpyxl" },
     { name = "pyrecords" },
     { name = "pyspecification" },
     { name = "rich" },
@@ -1283,6 +1284,7 @@ dev = [
 requires-dist = [
     { name = "docxtpl", specifier = ">=0.20.2" },
     { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pyrecords", specifier = ">=0.2.0" },
     { name = "pyspecification", specifier = ">=4.1.1" },
     { name = "rich", specifier = ">=15.0.0" },
