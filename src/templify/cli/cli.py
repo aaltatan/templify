@@ -29,6 +29,7 @@ from templify.cli.dependencies.data import (
 )
 from templify.cli.dependencies.store import SchemaStoreDI, store_errors
 from templify.cli.dependencies.template import OutputDirDI, TemplateDI
+from templify.environment import catalog, describe
 from templify.writers import InvalidOutputError, write_multiple, write_single
 
 from .help import RENDER_HELP_TEXT
@@ -127,7 +128,7 @@ def render(  # noqa: PLR0913, PLR0917
         )
 
     except (TemplateError, InvalidOutputError) as e:
-        _fail(f"Template Error: {e}")
+        _fail(f"Template Error: {describe(e) if isinstance(e, TemplateError) else e}")
 
     console.print(f"[green]File generated successfully:[/] {filepath}")
 
@@ -149,6 +150,42 @@ def filters(console: ConsoleDI) -> None:
             escape(", ".join(f"{name}: {_type_name(schema)}" for name, schema in arguments)),
             expression.get("description", ""),
         )
+
+    console.print(table)
+
+
+def _namespaces(incomplete: str) -> list[str]:
+    """Shell completion for `types --namespace`."""
+    return [name for name in catalog().namespaces() if name.startswith(incomplete)]
+
+
+@command(app, name="types", aliases=("t",), help="List the jinja-types template filters and tests")
+def types(
+    console: ConsoleDI,
+    namespace: Annotated[
+        str | None,
+        typer.Option(
+            "-n",
+            "--namespace",
+            help="Only this namespace: str, decimal, date, ar, ... (helpers for plain names)",
+            autocompletion=_namespaces,
+        ),
+    ] = None,
+    kind: Annotated[
+        str | None,
+        typer.Option("-k", "--kind", help="Only this kind: filter, test, attribute or global"),
+    ] = None,
+) -> None:
+    """List the jinja-types members usable in templates: `{{ code | str.zfill(5) }}`."""
+    entries = catalog().select(namespace=namespace, kind=kind)
+
+    if not entries:
+        _fail(f"No members match, namespaces: {', '.join(catalog().namespaces())}")
+
+    table = Table("Name", "Kinds", "Description", box=None, header_style="bold")
+
+    for entry in entries:
+        table.add_row(entry.name, ", ".join(entry.kinds), escape(entry.doc.split("\n")[0]))
 
     console.print(table)
 

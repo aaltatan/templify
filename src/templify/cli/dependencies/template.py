@@ -8,6 +8,7 @@ import typer
 from jinja2 import TemplateError
 from typer_di import Depends
 
+from templify.environment import describe
 from templify.writers import TemplateExtensionNotSupportedError, Writer, writers
 
 # -----------------------
@@ -47,7 +48,7 @@ def _get_template(
     except TemplateExtensionNotSupportedError as e:
         raise typer.BadParameter(str(e)) from e
     except TemplateError as e:
-        msg = f"Template Error: {e}"
+        msg = f"Template Error: {describe(e)}"
         raise typer.BadParameter(msg) from e
     except Exception as e:
         msg = f"Could not load template '{template_path.name}': {e}"

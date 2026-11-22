@@ -8,8 +8,10 @@ from typing import Any, Protocol
 from uuid import uuid4
 
 from docxtpl import DocxTemplate
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import FileSystemLoader
 from pyrecords import Data, DataItem
+
+from templify.environment import environment
 
 type Context = dict[str, Any]
 """The variables a template is rendered with."""
@@ -135,7 +137,10 @@ writers = WriterRegistry()
 
 @writers.writer("docx")
 class DocxWriter:
-    """Writes Word documents using docxtpl (Jinja2 tags inside a `.docx` file)."""
+    """Writes Word documents using docxtpl (Jinja2 tags inside a `.docx` file).
+
+    Renders in the sandboxed jinja-types environment (see `templify.environment`).
+    """
 
     def __init__(self, template_path: Path) -> None:
         """Load the template.
@@ -146,6 +151,7 @@ class DocxWriter:
         """
         self.template = DocxTemplate(template_path)
         self.template.init_docx()  # fail fast on a corrupted file, docxtpl loads lazily
+        self.env = environment()
 
     def write(self, context: Context, filepath: Path) -> None:
         """Render the template with `context` and save the result to `filepath`.
@@ -154,7 +160,7 @@ class DocxWriter:
             jinja2.TemplateError: The template has a syntax error, or failed to render.
 
         """
-        self.template.render(context)
+        self.template.render(context, self.env)
         self.template.save(filepath)
 
 
@@ -163,7 +169,7 @@ class TextWriter:
     """Writes plain text files using Jinja2, saved as UTF-8.
 
     Templates can `{% include %}` other files from the template's folder.
-    Output is not HTML-escaped.
+    Output is not HTML-escaped. Renders in the sandboxed jinja-types environment.
     """
 
     def __init__(self, template_path: Path) -> None:
@@ -173,10 +179,8 @@ class TextWriter:
             jinja2.TemplateSyntaxError: The template has a syntax error.
 
         """
-        env = Environment(  # noqa: S701 - output is not only html, escaping would corrupt txt/json
-            loader=FileSystemLoader(template_path.parent),
-            keep_trailing_newline=True,
-        )
+        # no autoescape: output is not only html, escaping would corrupt txt/json
+        env = environment(loader=FileSystemLoader(template_path.parent), keep_trailing_newline=True)
         self.template = env.get_template(template_path.name)
 
     def render(self, context: Context) -> str:

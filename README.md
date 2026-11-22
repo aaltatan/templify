@@ -27,12 +27,14 @@ offers/
 - [Commands](#commands)
   - [`render` (`r`)](#render-r)
   - [`filters` (`f`)](#filters-f)
+  - [`types` (`t`)](#types-t)
   - [`store` (`s`)](#store-s)
   - [Upgrading from 0.2](#upgrading-from-02)
 - [Data sources](#data-sources)
 - [Templates](#templates)
   - [Supported formats](#supported-formats)
   - [Jinja2 in 60 seconds](#jinja2-in-60-seconds)
+  - [Type filters (jinja-types)](#type-filters-jinja-types)
   - [Built-in variables](#built-in-variables)
   - [Word (`.docx`) templates](#word-docx-templates)
   - [JSON templates](#json-templates)
@@ -64,6 +66,7 @@ offers/
 - **Record stores**: keep the answers asked from a schema in sqlite, Excel, JSON or JSON Lines, then list, search, update, migrate, import, export and re-render them by id.
 - **Safe output**: existing files are never overwritten, invalid filename characters are replaced, and missing folders are created.
 - **Validated JSON output**: a JSON template that renders invalid JSON is rejected before anything is saved.
+- **Type filters** from jinja-types in every template (`str.zfill`, `decimal.quantize`, `date.strftime`, `ar.to_words`, ...), rendered in Jinja's immutable sandbox.
 - **Clear errors** for bad templates, bad data, unknown columns and bad filters, instead of Python tracebacks.
 - **Extensible**: add a new data reader, template writer or filter rule with one decorator.
 
@@ -156,6 +159,7 @@ templify --help
 | --------- | ----- | --------------------------------------------------- |
 | `render`  | `r`   | Render a template with data, in one of three modes  |
 | `filters` | `f`   | List the filter rules and their arguments           |
+| `types`   | `t`   | List the jinja-types template filters and tests     |
 | `store`   | `s`   | Keep records in a store file, see [Storing records](#storing-records) |
 
 ### `render` (`r`)
@@ -298,6 +302,22 @@ templify filters
 
 The argument names are also the `kwargs` names: `{"key": "salary", "value": 1400}`.
 
+### `types` (`t`)
+
+Lists the [type filters](#type-filters-jinja-types) usable inside templates, optionally one
+namespace (`-n`, with shell completion) or one kind (`-k filter|test|attribute|global`):
+
+```bash
+templify types -n str -k test
+```
+
+```text
+ Name           Kinds          Description
+ str.endswith   filter, test   Return True if the string ends with `suffix` (or any suffix in a tuple).
+ str.isalnum    filter, test   Return True if all characters are alphanumeric.
+ ...
+```
+
 ### `store` (`s`)
 
 Manage the records kept in a store file: `init`, `add`, `list`, `get`, `search`, `update`, `delete`, `migrate`, `import` and `export`. See [Storing records](#storing-records).
@@ -402,6 +422,27 @@ All templates use [Jinja2](https://jinja.palletsprojects.com/en/stable/templates
 | `{% include "header.txt" %}`               | Include another file from the template's folder (text formats) |
 
 A variable that doesn't exist renders as an empty string instead of failing.
+
+### Type filters (jinja-types)
+
+Every template also gets the [jinja-types](https://pypi.org/project/jinja-types/) filters and
+tests: Python's own methods, with the same names and arguments, under a namespace (`str.`,
+`int.`, `decimal.`, `date.`, `re.`, `ar.`, ...):
+
+```jinja
+Ref: {{ id | to_str | str.zfill(5) }}
+Salary: {{ salary | to_decimal | decimal.quantize(decimal.Decimal("0.01"), rounding=decimal.ROUND_HALF_UP) | fmt(",.2f") }}
+Hired: {{ hired | date.strftime("%d/%m/%Y") }}
+In words: {{ salary | int | ar.to_words }}
+{% if code is str.isdigit %}numeric code{% endif %}
+```
+
+List them with [`templify types`](#types-t). A misspelled name is caught with a suggestion:
+`Template Error: No filter named 'str.zfil'. Did you mean: str.zfill?`
+
+Templates render in Jinja's **immutable sandbox**: they can read data and call harmless
+methods, but not change lists or dicts (`{{ objects.append(x) }}` fails) or reach Python
+internals.
 
 ### Built-in variables
 
@@ -953,6 +994,8 @@ templify reports problems as short messages. Bad input (options, data, template 
 | `--each` with `--object`                         | `--each and --object can not be used together`                         |
 | File doesn't exist / is a folder                 | `File '...' does not exist.`                                           |
 | Jinja syntax error in the template               | `Template Error: unexpected '}'`                                       |
+| Misspelled type filter or test                   | `Template Error: No filter named 'str.zfil'. Did you mean: str.zfill?` |
+| Template tries to change data or reach internals | `Template Error: access to attribute 'append' of 'list' object is unsafe.` |
 | Corrupted `.docx` template                       | `Could not load template 't.docx': ...`                                |
 | Corrupted `.xlsx` / JSON not a list of objects   | `Could not read data file 'data.json': JSON data must be a list of objects` |
 | JSON template rendered invalid JSON              | `Template Error: Rendered output is not valid JSON: ...`               |
