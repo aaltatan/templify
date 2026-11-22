@@ -302,32 +302,14 @@ wheels = [
 [[package]]
 name = "jinja-types"
 version = "0.1.0"
-source = { editable = "../../python-packages/jinja-types" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "arapy" },
     { name = "jinja2" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "arapy", specifier = ">=0.1.0" },
-    { name = "arapy", extras = ["hijri"], marker = "extra == 'hijri'", specifier = ">=0.1.0" },
-    { name = "arapy", extras = ["shape"], marker = "extra == 'shape'", specifier = ">=0.1.0" },
-    { name = "babel", marker = "extra == 'babel'" },
-    { name = "jinja2", specifier = ">=3.1" },
-    { name = "regex", marker = "extra == 'regex'" },
-]
-provides-extras = ["regex", "babel", "hijri", "shape"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "jsonschema", specifier = ">=4.26.0" },
-    { name = "mypy", specifier = ">=2.4.1" },
-    { name = "pytest", specifier = ">=9.2.0" },
-    { name = "pytest-cov", specifier = ">=7.1.0" },
-    { name = "ruff", specifier = ">=0.17.6" },
-    { name = "types-jsonschema", specifier = ">=4.26.0.20261006" },
-    { name = "tzdata", specifier = ">=2026.6" },
+sdist = { url = "https://files.pythonhosted.org/packages/09/a9/33066af77280a17b66af41535d6072a06a23684a9ef9db021e42ad8a6115/jinja_types-0.1.0.tar.gz", hash = "sha256:7230d7a213a9bc2da4bbb952efd8fb982f9af6122b794a858c64bb61e63310f2", size = 48011, upload-time = "2026-11-22T19:09:25.231Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/98/f0c9abb2e94661274e428ba8ef7f7a7b15e5ed6a3f772970b401b8c7f003/jinja_types-0.1.0-py3-none-any.whl", hash = "sha256:d7982d2cf72350a28ff628c4f8610d2e580e7a3c860f0ace8afac46772cb66f3", size = 61210, upload-time = "2026-11-22T19:09:23.909Z" },
 ]
 
 [[package]]
@@ -1324,7 +1306,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "docxtpl", specifier = ">=0.20.2" },
-    { name = "jinja-types", editable = "../../python-packages/jinja-types" },
+    { name = "jinja-types", specifier = ">=0.1.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pyrecords", specifier = ">=0.2.0" },

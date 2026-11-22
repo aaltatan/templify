@@ -63,9 +63,6 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "templify"
 
-[tool.uv.sources]
-jinja-types = { path = "../../python-packages/jinja-types", editable = true }
-
 [dependency-groups]
 dev = ["devtools>=0.13.0", "mypy>=2.4.1", "pytest>=9.2.0", "pytest-cov>=7.1.0", "ruff>=0.17.4", "types-openpyxl"]
 
