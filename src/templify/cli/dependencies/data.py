@@ -1,7 +1,8 @@
 """The data options: the mode, `--data` / `--schema`, `--order`, `--filter` and `--group-by`."""
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Annotated, Literal
 from zipfile import BadZipFile
@@ -226,8 +227,15 @@ def _filter(
     if isinstance(data, dict) or schema is None:
         return data
 
-    try:
+    with filter_errors():
         return filter_data(data, compiler, schema)
+
+
+@contextmanager
+def filter_errors() -> Iterator[None]:
+    """Report a bad filter schema, or a filter failing on a value, as a usage error."""
+    try:
+        yield
     except (
         RuleKeyDoesNotExistError,
         RuleDoesNotExistError,
@@ -274,3 +282,6 @@ ModeDI = Annotated[Mode, Depends(_get_mode)]
 DataDI = Annotated[Data | DataItem, Depends(_group)]
 """Injects the data from `--data` or `--schema`: a list ordered, filtered and grouped,
 or a single object with `--object`."""
+
+FilterSchemaDI = Annotated[FilterSchema | None, Depends(_get_filter_schema)]
+"""Injects the parsed `--filter` JSON, `None` when not given."""

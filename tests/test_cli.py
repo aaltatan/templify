@@ -847,3 +847,109 @@ def test_main_entry_point(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(SystemExit) as exc:
         main()
     assert exc.value.code == 0
+
+
+# -----------------------
+# store
+# -----------------------
+
+
+class TestStoreCommands:
+    @pytest.fixture
+    def db(self, tmp_path: Path) -> Path:
+        return tmp_path / "people.sqlite"
+
+    @pytest.fixture
+    def filled(self, answer: Callable[..., None], person_schema: Path, db: Path) -> Path:
+        answer("Rama", True, "Rawaa", False)  # noqa: FBT003
+        code, output = invoke("store", "add", "-s", person_schema, db)
+
+        assert code == 0, output
+        assert "Added records: 1, 2" in output
+
+        return db
+
+    @pytest.mark.parametrize("extension", ["sqlite", "xlsx", "json", "jsonl"])
+    def test_init(self, extension: str, person_schema: Path, tmp_path: Path) -> None:
+        path = tmp_path / f"people.{extension}"
+
+        for _ in range(2):
+            code, output = invoke("store", "init", "-s", person_schema, path)
+
+            assert code == 0, output
+
+        assert path.exists()
+
+    def test_list_and_get(self, person_schema: Path, filled: Path) -> None:
+        code, output = invoke("store", "ls", "-s", person_schema, filled)
+
+        assert code == 0, output
+        assert "Rama" in output
+        assert "Rawaa" in output
+        assert "created_at" in output
+
+        code, output = invoke("store", "get", "-s", person_schema, filled, "2")
+
+        assert code == 0, output
+        assert "Rawaa" in output
+        assert "Rama " not in output
+
+    def test_search(self, person_schema: Path, filled: Path) -> None:
+        code, output = invoke(
+            "store", "search", "-s", person_schema, filled, "--filter", filter_eq("name", "Rawaa")
+        )
+
+        assert code == 0, output
+        assert "Rawaa" in output
+        assert "Rama " not in output
+
+    def test_search_needs_filter(self, person_schema: Path, filled: Path) -> None:
+        code, output = invoke("store", "search", "-s", person_schema, filled)
+
+        assert code == 2
+        assert "--filter is required" in output
+
+    def test_update(self, answer: Callable[..., None], person_schema: Path, filled: Path) -> None:
+        answer("Rama A.")
+        code, output = invoke("store", "update", "-s", person_schema, filled, "1")
+
+        assert code == 0, output
+
+        _, output = invoke("store", "get", "-s", person_schema, filled, "1")
+
+        assert "Rama A." in output
+
+    def test_delete(self, person_schema: Path, filled: Path) -> None:
+        result = runner.invoke(
+            app, ["store", "rm", "-s", str(person_schema), str(filled), "1"], input="n\n"
+        )
+
+        assert result.exit_code == 1  # aborted
+
+        code, output = invoke("store", "rm", "-s", person_schema, filled, "1", "--yes")
+
+        assert code == 0, output
+
+        _, output = invoke("store", "ls", "-s", person_schema, filled)
+
+        assert "Rama " not in output
+        assert "Rawaa" in output
+
+    @pytest.mark.parametrize("command", [["get"], ["update"], ["rm", "--yes"]])
+    def test_missing_id(self, command: list[str], person_schema: Path, filled: Path) -> None:
+        code, output = invoke("store", command[0], "-s", person_schema, filled, "9", *command[1:])
+
+        assert code == 2
+        assert "No record with id 9" in output
+
+    def test_missing_store(self, person_schema: Path, db: Path) -> None:
+        code, output = invoke("store", "ls", "-s", person_schema, db)
+
+        assert code == 1
+        assert "store init" in output
+
+    def test_unsupported_extension(self, person_schema: Path, tmp_path: Path) -> None:
+        code, output = invoke("store", "init", "-s", person_schema, tmp_path / "people.csv")
+
+        assert code == 2
+        assert "not supported" in output

@@ -1,20 +1,30 @@
 """The templify command line application."""
 
+import json
+import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Annotated, Any, NoReturn
+from zipfile import BadZipFile
 
 import typer
 from jinja2 import TemplateError
-from pyrecords import rules
+from pyrecords import Data, filter_data, get_compiler, rules
 from pyspecification import get_expression_json_schema
+from rich.console import Console
 from rich.markup import escape
 from rich.progress import track
 from rich.table import Table
+from schemify import ask_data, ask_list
+from schemify.cli.dependencies.schema import ask_or_abort
 from typer_di import TyperDI
-from typer_swissknife import command
+from typer_swissknife import add_typer, command
 
 from templify.cli.dependencies.console import ConsoleDI
-from templify.cli.dependencies.data import DataDI, Mode, ModeDI
+from templify.cli.dependencies.data import DataDI, FilterSchemaDI, Mode, ModeDI, filter_errors
+from templify.cli.dependencies.store import SchemaStoreDI
 from templify.cli.dependencies.template import OutputDirDI, TemplateDI
+from templify.stores import RecordNotFoundError, StoreError
 from templify.writers import InvalidOutputError, write_multiple, write_single
 
 from .help import RENDER_HELP_TEXT
@@ -24,6 +34,11 @@ app = TyperDI(
     help="Fill Word, text, Markdown, HTML and JSON templates with data",
     no_args_is_help=True,
 )
+
+store_app = TyperDI(help="Keep records asked from a schema in a store file", no_args_is_help=True)
+add_typer(app, store_app, name="store", aliases=("s",))
+
+IdArgument = Annotated[int, typer.Argument(metavar="ID", help="The record id", show_default=False)]
 
 
 @command(app, name="render", aliases=("r",), no_args_is_help=True, help=RENDER_HELP_TEXT)
@@ -132,6 +147,142 @@ def filters(console: ConsoleDI) -> None:
         )
 
     console.print(table)
+
+
+# -----------------------
+# store
+# -----------------------
+
+
+@command(store_app, name="init", no_args_is_help=True)
+def store_init(console: ConsoleDI, target: SchemaStoreDI) -> None:
+    """Create the store file and its table or sheet, does nothing if they exist."""
+    with _store_errors():
+        target.store.init()
+
+    console.print("[green]Store ready[/]")
+
+
+@command(store_app, name="add", no_args_is_help=True)
+def store_add(console: ConsoleDI, target: SchemaStoreDI) -> None:
+    """Ask for records matching the schema and add them to the store."""
+    records = ask_or_abort(target.schema, ask_list)
+
+    with _store_errors(records):
+        ids = target.store.add(records)
+
+    console.print(f"[green]Added records:[/] {', '.join(map(str, ids))}")
+
+
+@command(store_app, name="list", aliases=("ls",), no_args_is_help=True)
+def store_list(console: ConsoleDI, target: SchemaStoreDI) -> None:
+    """List every record in the store."""
+    with _store_errors():
+        records = target.store.all()
+
+    _print_records(console, records)
+
+
+@command(store_app, name="get", no_args_is_help=True)
+def store_get(console: ConsoleDI, target: SchemaStoreDI, id_: IdArgument) -> None:
+    """Show one record."""
+    with _store_errors():
+        record = target.store.get(id_)
+
+    _print_records(console, [record])
+
+
+@command(store_app, name="search", no_args_is_help=True)
+def store_search(console: ConsoleDI, target: SchemaStoreDI, filter_schema: FilterSchemaDI) -> None:
+    """List the records matching --filter (see `templify filters` for the rules)."""
+    if filter_schema is None:
+        msg = "--filter is required"
+        raise typer.BadParameter(msg)
+
+    with _store_errors():
+        records = target.store.all()
+
+    with filter_errors():
+        records = filter_data(records, get_compiler(), filter_schema)
+
+    _print_records(console, records)
+
+
+@command(store_app, name="update", no_args_is_help=True)
+def store_update(console: ConsoleDI, target: SchemaStoreDI, id_: IdArgument) -> None:
+    """Ask for the whole record again and replace it."""
+    with _store_errors():
+        target.store.get(id_)  # fail before asking
+
+    record = ask_or_abort(target.schema, ask_data)
+
+    with _store_errors([record]):
+        target.store.update(id_, record)
+
+    console.print(f"[green]Updated record:[/] {id_}")
+
+
+@command(store_app, name="delete", aliases=("rm",), no_args_is_help=True)
+def store_delete(
+    console: ConsoleDI,
+    target: SchemaStoreDI,
+    id_: IdArgument,
+    yes: Annotated[  # noqa: FBT002 - typer flag
+        bool, typer.Option("-y", "--yes", help="Delete without asking")
+    ] = False,
+) -> None:
+    """Delete one record."""
+    with _store_errors():
+        target.store.get(id_)
+
+    if not yes:
+        typer.confirm(f"Delete record {id_}?", abort=True)
+
+    with _store_errors():
+        target.store.delete(id_)
+
+    console.print(f"[green]Deleted record:[/] {id_}")
+
+
+@contextmanager
+def _store_errors(unsaved: Data | None = None) -> Iterator[None]:
+    """Report store failures, with the `unsaved` answers as JSON so they can be recovered."""
+    try:
+        yield
+    except RecordNotFoundError as e:
+        raise typer.BadParameter(str(e)) from e
+    except (StoreError, sqlite3.Error, OSError, ValueError, BadZipFile) as e:
+        message = f"Store Error: {e}"
+
+        if unsaved:
+            answers = json.dumps(unsaved, ensure_ascii=False, indent=2, default=str)
+            message += f"\nThe answers were not saved:\n{answers}"
+
+        _fail(message)
+
+
+def _print_records(console: Console, records: Data) -> None:
+    if not records:
+        console.print("[yellow]No records[/]")
+
+        return
+
+    table = Table(*map(escape, records[0]), box=None, header_style="bold")
+
+    for record in records:
+        table.add_row(*(escape(_cell(value)) for value in record.values()))
+
+    console.print(table)
+
+
+def _cell(value: Any) -> str:
+    if value is None:
+        return ""
+
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+
+    return str(value)
 
 
 def _type_name(schema: dict[str, Any]) -> str:
