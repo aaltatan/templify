@@ -1,6 +1,6 @@
 [project]
 name = "templify-cli"
-version = "0.7.2"
+version = "0.7.3"
 description = "Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line."
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -35,7 +35,7 @@ classifiers = [
 ]
 dependencies = [
     "docxtpl>=0.20.2",
-    "jinja-types>=0.1.1",
+    "jinja-types>=0.2.0",
     "jinja2>=3.1.6",
     "openpyxl>=3.1.5",
     "pyrecords>=0.2.0",

@@ -295,15 +295,15 @@ wheels = [
 
 [[package]]
 name = "jinja-types"
-version = "0.1.1"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "arapy" },
     { name = "jinja2" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8d/c6/463699310a11adbc1824b6dd7de289bbbde45bd2dd04e4a377bbda31b78f/jinja_types-0.1.1.tar.gz", hash = "sha256:7116a06d3c9cac31f4d62bb97e9da7062467500f9ed90e4a651098270b50f9ab", size = 82601, upload-time = "2026-11-22T19:14:29.205Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/a2/415ef51ed8568debcb1c900a016224b801e7a856fe04bbdaffb4ff15f2a6/jinja_types-0.2.0.tar.gz", hash = "sha256:8069b0c0f4660e7d83c815d096f11071816c74a454a65e9b13199b12ac05332d", size = 84783, upload-time = "2026-11-23T05:11:52.459Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/da/2b8134d9437b705745df7690a6b71bbffaca5f788436c5ff27169f30c804/jinja_types-0.1.1-py3-none-any.whl", hash = "sha256:5cc4da85c8941137164cc068b15f776fb77fb032969e4d88c61a9c7895d74ac3", size = 77248, upload-time = "2026-11-22T19:14:27.781Z" },
+    { url = "https://files.pythonhosted.org/packages/51/ad/00deee516cf0cb8f8423fa5dd644a6ebe08f2ae9d419ec5ffe075310401a/jinja_types-0.2.0-py3-none-any.whl", hash = "sha256:310d141baf151eaa8242fbb405867f788a2b619a30bb016130f6e32107102e0c", size = 79131, upload-time = "2026-11-23T05:11:47.401Z" },
 ]
 
 [[package]]
@@ -1261,7 +1261,7 @@ wheels = [
 
 [[package]]
 name = "templify-cli"
-version = "0.7.2"
+version = "0.7.3"
 source = { editable = "." }
 dependencies = [
     { name = "docxtpl" },
@@ -1290,7 +1290,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "docxtpl", specifier = ">=0.20.2" },
-    { name = "jinja-types", specifier = ">=0.1.1" },
+    { name = "jinja-types", specifier = ">=0.2.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pyrecords", specifier = ">=0.2.0" },
