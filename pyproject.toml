@@ -1,6 +1,6 @@
 [project]
 name = "templify-cli"
-version = "0.7.1"
+version = "0.7.2"
 description = "Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line."
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -41,7 +41,7 @@ dependencies = [
     "pyrecords>=0.2.0",
     "pyspecification>=4.1.1",
     "rich>=15.0.0",
-    "schemify-cli>=0.4.0",
+    "schemify-cli>=0.5.0",
     "typer>=0.29.2",
     "typer-di>=0.1.5",
     "typer-swissknife>=0.2.0",
