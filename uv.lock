@@ -1226,7 +1226,7 @@ wheels = [
 
 [[package]]
 name = "schemify-cli"
-version = "0.5.0"
+version = "0.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema" },
@@ -1236,9 +1236,9 @@ dependencies = [
     { name = "typer-di" },
     { name = "typer-swissknife" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5b/a4/02656675871fa0896f4bbe8945758136a56926d8464009027918403a4588/schemify_cli-0.5.0.tar.gz", hash = "sha256:015cb35e9f71f07dd9ea94c5ed69e2db23c9e1d32aacd05ab4abbd96c295f4a5", size = 13315, upload-time = "2026-11-23T04:28:15.528Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/50/89/80aa2c98710ef5bcd42eba551bcb3c1f39a544b4c67ca078389f3c83d5b7/schemify_cli-0.5.1.tar.gz", hash = "sha256:4156fe4e26c412fb9f587cd39a262d28844ae2c96bac031585d06d2899ebf2c2", size = 13320, upload-time = "2026-11-24T07:45:18.766Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/a7/1f16dfb7b59868c79edac12779cc6678ad07e60d1e46c101808860e71503/schemify_cli-0.5.0-py3-none-any.whl", hash = "sha256:a6cdf6d7ba2b6b556f845d86b886da068a8ebc509a1dd41fc9cf42aeac058fba", size = 17392, upload-time = "2026-11-23T04:28:12.698Z" },
+    { url = "https://files.pythonhosted.org/packages/23/6d/caa1d403ca7fcf06872091d70a4f9f088ebb7c40650843b1291627ff60d8/schemify_cli-0.5.1-py3-none-any.whl", hash = "sha256:3143708c9f29905b00b9780599216f8ef8143324c063cb3c4ae43e2e08c04965", size = 17404, upload-time = "2026-11-24T07:45:17.647Z" },
 ]
 
 [[package]]
@@ -1261,7 +1261,7 @@ wheels = [
 
 [[package]]
 name = "templify-cli"
-version = "0.7.3"
+version = "0.7.4"
 source = { editable = "." }
 dependencies = [
     { name = "docxtpl" },
@@ -1296,7 +1296,7 @@ requires-dist = [
     { name = "pyrecords", specifier = ">=0.2.0" },
     { name = "pyspecification", specifier = ">=4.1.1" },
     { name = "rich", specifier = ">=15.0.0" },
-    { name = "schemify-cli", specifier = ">=0.5.0" },
+    { name = "schemify-cli", specifier = ">=0.5.1" },
     { name = "typer", specifier = ">=0.29.2" },
     { name = "typer-di", specifier = ">=0.1.5" },
     { name = "typer-swissknife", specifier = ">=0.2.0" },
