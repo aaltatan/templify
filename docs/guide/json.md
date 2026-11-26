@@ -52,15 +52,16 @@ is one line:
 
 ```bash
 templify render -t all.json -d employees.json -o export -f employees --order name
+templify render -t all.json -d employees.xlsx -o export -f from-excel --order name
 ```
 
 The ordered, filtered and grouped rows, as one JSON file. `tojson` sorts the keys of
 each object alphabetically.
 
-!!! warning "Excel dates and `tojson`"
-    `tojson` cannot write Python dates, and Excel date cells are dates. Dumping
-    `employees.xlsx` this way fails. Write the fields yourself and convert the dates
-    to text with `to_date | date.isoformat`:
+!!! note "Dates"
+    JSON has no date type, so `tojson` writes dates and times as ISO text. An Excel date
+    cell is a date **and** a time, so it comes out as `"2024-02-10T00:00:00"`. For the
+    day only, write the field yourself with `to_date | date.isoformat`:
 
     ```jinja
     [

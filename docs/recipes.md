@@ -153,15 +153,16 @@ templify render --object -s person.schema.json --store certificates.sqlite --id 
 
 **Job:** hand the employee sheet to a developer or an API as JSON.
 
-From a JSON source, one line of template is enough
+One line of template is enough
 ([`all.json`](https://github.com/aaltatan/templify/blob/main/examples/all.json)):
 
 ```bash
-templify render -t all.json -d employees.json -o export -f employees --order name
+templify render -t all.json -d employees.xlsx -o export -f employees --order name
 ```
 
-From Excel, write the fields yourself, because Excel dates must become text (`to_date | date.isoformat`) before
-`tojson` can write them.
+Excel date cells come out as ISO date and time: `"hired": "2024-02-10T00:00:00"`. To
+write the day only, choose the order of the keys, or leave columns out, write the fields
+yourself.
 [`export.json`](https://github.com/aaltatan/templify/blob/main/examples/export.json):
 
 ```jinja

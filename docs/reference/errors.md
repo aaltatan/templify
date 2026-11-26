@@ -6,7 +6,7 @@
 | `1` | A template failed **while rendering** a row, or a store could not be read or written |
 | `2` | Bad input: options, data, filters, or a template that cannot be loaded (syntax error, unknown filter) |
 
-Errors are short messages, not Python tracebacks. With `--each`, files already written
+Errors are short messages, not Python tracebacks, also when a Python method inside a template fails. With `--each`, files already written
 for earlier rows stay on disk when a later row fails.
 
 ## Command line
@@ -34,6 +34,7 @@ for earlier rows stay on disk when a later row fails.
 | `Template Error: access to attribute 'append' of 'list' object is unsafe.` | 1 | The sandbox blocks changing data; build a new value instead ([sandbox](../guide/templates.md#the-sandbox)) |
 | `Template Error: 'str object' has no attribute 'strftime'` | 1 | A JSON date is text: use `{{ hired \| to_date \| date.strftime(...) }}` |
 | `Template Error: Rendered output is not valid JSON: Expecting ',' delimiter: ...` | 1 | Write values through `tojson` ([JSON templates](../guide/json.md)) |
+| `Template Error: TypeError: unsupported format string passed to Undefined.__format__` | 1 | A Python method failed on a value; here `"{:,}".format(x)` on a column that does not exist. The type names the problem: `TypeError`, `ValueError`, `ZeroDivisionError`, ... |
 
 A template that misspells a **variable** (`{{ nmae }}`) does not fail: it prints an
 empty string. Check new templates once.

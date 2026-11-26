@@ -551,6 +551,9 @@ templify render -t all.json -d employees.xlsx -o export -f employees --order nam
 ```
 
 > `tojson` sorts object keys alphabetically.
+>
+> Dates and times are written as ISO text: an Excel date cell becomes `"2024-02-10T00:00:00"`.
+> For the day only, use `{{ hired | to_date | date.isoformat | tojson }}`.
 
 **Why use `tojson`?** With `"name": "{{ name }}"`, a name like `Ra"ma` produces broken JSON:
 
@@ -1015,6 +1018,7 @@ templify reports problems as short messages. Bad input (options, data, template 
 | Corrupted `.docx` template                       | `Could not load template 't.docx': ...`                                |
 | Corrupted `.xlsx` / JSON not a list of objects   | `Could not read data file 'data.json': JSON data must be a list of objects` |
 | JSON template rendered invalid JSON              | `Template Error: Rendered output is not valid JSON: ...`               |
+| A Python method in the template failed on a value | `Template Error: TypeError: unsupported format string passed to Undefined.__format__` |
 | `--order` / `--group-by` column doesn't exist    | `Key 'salary' not found in data, Available keys: name, age`            |
 | `--filter` isn't valid JSON                      | `Expecting property name enclosed in double quotes: ...`               |
 | Unknown filter rule                              | `Rule 'nope' does not exist. Available rules: is_true, is_null, ...`   |

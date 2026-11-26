@@ -186,6 +186,25 @@ class TestSingleTemplate:
         assert code == 0, output
         assert json.loads((output_dir / "all.json").read_text())[2] == {"name": "Rama", "age": 25}
 
+    def test_json_dumps_excel_dates(
+        self, make_text_file: MakeFile, tmp_path: Path, output_dir: Path
+    ) -> None:
+        # Excel date cells are datetimes, which json.dumps can not write on its own
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        assert sheet is not None
+        sheet.append(["name", "hired"])
+        sheet.append(["Rama", datetime(2024, 2, 10)])
+        data = tmp_path / "hired.xlsx"
+        wb.save(data)
+        template = make_text_file("all.json", "{{ objects | tojson }}")
+        code, output = invoke("render", "-t", template, "-d", data, "-o", output_dir)
+
+        assert code == 0, output
+        assert json.loads((output_dir / "all.json").read_text()) == [
+            {"hired": "2024-02-10T00:00:00", "name": "Rama"}
+        ]
+
     def test_docx(self, make_docx: MakeFile, xlsx_file: Path, output_dir: Path) -> None:
         template = make_docx(
             "all.docx",
@@ -323,6 +342,25 @@ class TestErrors:
         code, output = invoke("render", "-t", template, "-d", xlsx_file, "-o", output_dir)
         assert code == 1  # a render failure, not a usage error
         assert "Template Error" in output
+
+    def test_python_error_in_template_is_reported(
+        self, make_text_file: MakeFile, xlsx_file: Path, output_dir: Path
+    ) -> None:
+        # formatting an undefined value raises TypeError, not a Jinja TemplateError
+        template = make_text_file("t.txt", '{{ "{:,}".format(salary) }}')
+        code, output = invoke("render", "-t", template, "-d", xlsx_file, "-o", output_dir)
+        assert code == 1
+        assert "Template Error: TypeError: unsupported format string" in output
+        assert "Traceback" not in output
+
+    def test_python_error_in_each_mode_is_reported(
+        self, make_text_file: MakeFile, xlsx_file: Path, output_dir: Path
+    ) -> None:
+        template = make_text_file("t.txt", "{{ 1 / 0 }}")
+        code, output = invoke("render", "--each", "-t", template, "-d", xlsx_file, "-o", output_dir)
+        assert code == 1
+        assert "Template Error: ZeroDivisionError: division by zero" in output
+        assert "Traceback" not in output
 
     def test_corrupted_docx_template(
         self, make_text_file: MakeFile, xlsx_file: Path, output_dir: Path

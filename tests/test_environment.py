@@ -2,7 +2,7 @@
 """The sandboxed jinja-types environment: real templates, hints and the `types` command."""
 
 import json
-from datetime import datetime
+from datetime import date, datetime, time
 from pathlib import Path
 
 import openpyxl
@@ -142,3 +142,28 @@ def test_types_command() -> None:
 
 def test_namespace_completion() -> None:
     assert _namespaces("da") == ["date", "datetime"]
+
+
+class TestToJson:
+    """`tojson` writes the dates Excel gives, and still refuses other objects."""
+
+    def test_dates_and_times_are_iso(self) -> None:
+        template = environment().from_string("{{ value | tojson }}")
+        value = {"at": datetime(2024, 2, 10, 8, 30), "day": date(2024, 2, 10), "t": time(9)}
+
+        assert json.loads(template.render(value=value)) == {
+            "at": "2024-02-10T08:30:00",
+            "day": "2024-02-10",
+            "t": "09:00:00",
+        }
+
+    def test_keys_stay_sorted(self) -> None:
+        template = environment().from_string("{{ value | tojson }}")
+
+        assert template.render(value={"b": 1, "a": 2}) == '{"a": 2, "b": 1}'
+
+    def test_other_objects_are_still_refused(self) -> None:
+        template = environment().from_string("{{ value | tojson }}")
+
+        with pytest.raises(TypeError, match="Object of type complex is not JSON serializable"):
+            template.render(value=1j)

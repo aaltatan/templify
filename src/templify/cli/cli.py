@@ -130,6 +130,10 @@ def render(  # noqa: PLR0913, PLR0917
     except (TemplateError, InvalidOutputError) as e:
         _fail(f"Template Error: {describe(e) if isinstance(e, TemplateError) else e}")
 
+    # a Python method the template calls can fail on a value: "{:,}".format(empty), 1 / 0, ...
+    except (ArithmeticError, AttributeError, LookupError, TypeError, ValueError) as e:
+        _fail(f"Template Error: {type(e).__name__}: {e}")
+
     console.print(f"[green]File generated successfully:[/] {filepath}")
 
 

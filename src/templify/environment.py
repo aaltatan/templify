@@ -6,6 +6,7 @@ command and the "did you mean" hints for misspelled names.
 """
 
 import re
+from datetime import date, time
 from difflib import get_close_matches
 from functools import cache
 from typing import Any
@@ -19,7 +20,22 @@ _UNKNOWN = re.compile(r"No (filter|test) named '([^']+)'")
 
 def environment(**options: Any) -> ImmutableSandboxedEnvironment:
     """Return a sandboxed environment with jinja-types, `options` go to the environment."""
-    return ImmutableSandboxedEnvironment(extensions=[TypesExtension], **options)
+    env = ImmutableSandboxedEnvironment(extensions=[TypesExtension], **options)
+
+    # Excel date cells are datetimes: let `tojson` write them instead of failing
+    env.policies["json.dumps_kwargs"] = {"sort_keys": True, "default": _json_default}
+
+    return env
+
+
+def _json_default(value: object) -> str:
+    """Write dates and times as ISO text in `tojson`; anything else is still an error."""
+    if isinstance(value, date | time):  # datetime is a date
+        return value.isoformat()
+
+    msg = f"Object of type {type(value).__name__} is not JSON serializable"
+
+    raise TypeError(msg)
 
 
 @cache
