@@ -1,0 +1,2 @@
+Hello {{ name }},
+You joined {{ department }} on {{ hired.strftime("%d/%m/%Y") }}.

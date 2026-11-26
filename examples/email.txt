@@ -1,0 +1,10 @@
+To: {{ email }}
+Subject: Welcome to the {{ department }} team
+
+Dear {{ name }},
+
+Welcome aboard! Your first day in our {{ city }} office is coming up.
+Your monthly salary will be {{ "{:,.2f}".format(salary) }} USD.
+
+Best regards,
+HR

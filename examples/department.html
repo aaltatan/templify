@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h1>{{ department }} department</h1>
+  <ul>
+  {%- for e in items %}
+    <li>{{ e.name }} ({{ e.city }})</li>
+  {%- endfor %}
+  </ul>
+  <p>{{ items | length }} employees</p>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": {{ name | tojson }},
+  "department": {{ department | tojson }},
+  "email": {{ email | tojson }},
+  "senior": {{ (salary > 1400) | tojson }}
+}

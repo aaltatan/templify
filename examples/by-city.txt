@@ -1,0 +1,4 @@
+{% for group in objects -%}
+{{ group.city }} / {{ group.department }}:
+{%- for e in group.people %} {{ e.name }}{% endfor %}
+{% endfor %}

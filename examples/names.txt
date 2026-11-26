@@ -1,0 +1,1 @@
+{% for e in objects %}{{ e.name }}{% if not loop.last %} {% endif %}{% endfor %}

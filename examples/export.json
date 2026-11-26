@@ -1,0 +1,12 @@
+[
+{%- for e in objects %}
+  {
+    "id": {{ e.id | tojson }},
+    "name": {{ e.name | tojson }},
+    "department": {{ e.department | tojson }},
+    "salary": {{ e.salary | tojson }},
+    "hired": {{ e.hired | to_date | date.isoformat | tojson }},
+    "email": {{ e.email | tojson }}
+  }{{ "," if not loop.last }}
+{%- endfor %}
+]

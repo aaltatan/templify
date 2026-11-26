@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Person",
+  "type": "object",
+  "properties": {
+    "name": { "title": "Name", "type": "string" },
+    "department": { "title": "Department", "type": "string", "enum": ["IT", "Sales", "HR"] },
+    "city": { "title": "City", "type": "string" },
+    "hired": { "title": "Hired on", "type": "string", "format": "date" }
+  },
+  "required": ["name", "department", "city"],
+  "additionalProperties": false
+}

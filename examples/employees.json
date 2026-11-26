@@ -1,0 +1,6 @@
+[
+  {"id": 1, "name": "Abdullah", "department": "Sales", "city": "Homs", "salary": 1200, "hired": "2021-04-01", "email": "abdullah@example.com"},
+  {"id": 2, "name": "Rawaa", "department": "IT", "city": "Damascus", "salary": 1800, "hired": "2023-09-15", "email": "rawaa@example.com"},
+  {"id": 3, "name": "Rama", "department": "IT", "city": "Homs", "salary": 1500, "hired": "2024-02-10", "email": "rama@example.com"},
+  {"id": 4, "name": "Omar", "department": "Sales", "city": "Aleppo", "salary": 1100, "hired": "2024-11-03", "email": null}
+]

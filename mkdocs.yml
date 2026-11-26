@@ -1,0 +1,101 @@
+site_name: templify
+site_description: Fill Word, text, Markdown, HTML and JSON templates with Excel or JSON data, from the command line.
+site_url: https://aaltatan.github.io/templify/
+repo_url: https://github.com/aaltatan/templify
+repo_name: aaltatan/templify
+edit_uri: edit/main/docs/
+copyright: GPL-3.0-or-later
+
+# docs/demo holds the vhs sources of the GIFs, docs/plans the internal roadmap
+exclude_docs: |
+  demo/*.tape
+  demo/*.ps1
+  plans/
+
+theme:
+  name: material
+  icon:
+    logo: material/file-document-multiple-outline
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - content.action.edit
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - Installation: install.md
+  - User guide:
+      - guide/index.md
+      - First files: guide/first-files.md
+      - Render modes: guide/modes.md
+      - Data sources: guide/data.md
+      - Writing templates: guide/templates.md
+      - Word (docx) templates: guide/word.md
+      - Text, Markdown and HTML: guide/text.md
+      - JSON templates: guide/json.md
+      - Type filters: guide/type-filters.md
+      - Output files: guide/output.md
+      - Order and filter: guide/order-filter.md
+      - Grouping: guide/grouping.md
+      - Storing records: guide/stores.md
+  - Recipes: recipes.md
+  - Reference:
+      - reference/index.md
+      - Commands and options: reference/commands.md
+      - Filter rules: reference/filter-rules.md
+      - Type filters: reference/types.md
+      - Errors and exit codes: reference/errors.md
+      - Upgrading: reference/upgrading.md
+      - Extending templify: reference/extending.md
+  - Development: development.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/aaltatan/templify
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/templify-cli/

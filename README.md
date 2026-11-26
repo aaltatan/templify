@@ -2,6 +2,9 @@
 
 A command line tool that fills document templates with data.
 
+**Documentation: [aaltatan.github.io/templify](https://aaltatan.github.io/templify/)**:
+a step-by-step guide, real-world recipes and the full reference.
+
 Point it at a **template** (Word, text, Markdown, HTML or JSON) and a **data source**: an Excel or JSON file, or a JSON Schema that templify asks you to fill. templify renders one file per row, one file with every row in it, or one file from a single object. Before rendering, you can **order**, **filter** and **group** the data.
 
 ```bash
